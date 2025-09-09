@@ -10,7 +10,6 @@ export interface CreateCategoriaEntity {
 }
 
 export interface UpdateCategoriaEntity {
-    id: string;
     nome?: string;
 }
 
