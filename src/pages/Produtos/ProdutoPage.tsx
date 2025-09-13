@@ -53,6 +53,8 @@ export function ProdutoPage() {
         categoria_id: categoriaFilter === "all" ? undefined : categoriaFilter,
       });
 
+      console.log("Data", data);
+
       setProdutos(data.produtos);
       pagination.updateTotalItems(data.total);
     } catch (err) {
@@ -173,7 +175,7 @@ export function ProdutoPage() {
           filters={produtoFilters}
           onFilterChange={(filterId, value) => {
             filters.setFilter(filterId, value);
-            pagination.reset(); // Reset para primeira página quando filtrar
+            pagination.reset();
           }}
           filterValues={filters.filters}
           search={{

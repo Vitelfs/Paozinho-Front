@@ -7,6 +7,7 @@ import type {
 } from "@/types/datatable.type";
 import type { ProdutoEntity } from "@/models/produto.entity";
 import type { CategoriaEntity } from "@/models/categoria.entity";
+import { calculateMargemLucro, calculateMarkup } from "@/utils/dataFormater";
 
 export const createProdutoColumns = (): DataTableColumn<ProdutoEntity>[] => [
   {
@@ -57,21 +58,20 @@ export const createProdutoColumns = (): DataTableColumn<ProdutoEntity>[] => [
   {
     id: "margem",
     header: "Margem",
-    accessorKey: "margem_lucro",
     enableSorting: true,
     cell: ({ row }: { row: { original: ProdutoEntity } }) => {
       return (
         <div>
           <Badge
             variant={
-              row.original.margem_lucro >= 50
+              calculateMargemLucro(row.original.preco_custo, row.original.preco_minimo_venda) >= 50
                 ? "default"
-                : row.original.margem_lucro >= 30
+                : calculateMargemLucro(row.original.preco_custo, row.original.preco_minimo_venda) >= 30
                 ? "secondary"
                 : "destructive"
             }
           >
-            {row.original.margem_lucro.toFixed(1)}%
+            {calculateMargemLucro(row.original.preco_custo, row.original.preco_minimo_venda).toFixed(1)}%
           </Badge>
         </div>
       );
@@ -89,22 +89,29 @@ export const createProdutoColumns = (): DataTableColumn<ProdutoEntity>[] => [
   {
     id: "margem_lucro_cliente",
     header: "Margem Cliente",
-    accessorKey: "margem_lucro_cliente",
     enableSorting: true,
     cell: ({ row }: { row: { original: ProdutoEntity } }) => (
       <div>
         <Badge
           variant={
-            row.original.margem_lucro_cliente >= 50
+            calculateMargemLucro(row.original.preco_minimo_venda, row.original.preco_revenda) >= 50
               ? "default"
-              : row.original.margem_lucro_cliente >= 30
+              : calculateMargemLucro(row.original.preco_minimo_venda, row.original.preco_revenda) >= 30
               ? "secondary"
               : "destructive"
           }
         >
-          {row.original.margem_lucro_cliente.toFixed(1)}%
+          {calculateMargemLucro(row.original.preco_minimo_venda, row.original.preco_revenda).toFixed(1)}%
         </Badge>
       </div>
+    ),
+  },
+  {
+    id: "markup_cliente",
+    header: "Markup Cliente",
+    enableSorting: true,
+    cell: ({ row }: { row: { original: ProdutoEntity } }) => (
+      <div>{calculateMarkup(row.original.preco_minimo_venda, row.original.preco_revenda).toFixed(1)}%</div>
     ),
   },
 ];

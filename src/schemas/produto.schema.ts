@@ -82,5 +82,47 @@ export const updateProdutoSchema = z
     path: ["preco_minimo_venda"],
   });
 
+// Schema para envio ao backend (sem campos de margem de lucro)
+export const produtoBackendSchema = produtoSchema.transform((data) => {
+  const { margem_lucro, margem_lucro_cliente, ...backendData } = data;
+  return backendData;
+});
+
+export const updateProdutoBackendSchema = updateProdutoSchema.transform(
+  (data) => {
+    const { margem_lucro, margem_lucro_cliente, ...backendData } = data;
+    return backendData;
+  }
+);
+
+// Exemplo: Schema que calcula preço final baseado na margem
+export const produtoComPrecoFinalSchema = produtoSchema.transform((data) => {
+  const preco_final =
+    data.preco_custo + (data.preco_custo * data.margem_lucro) / 100;
+  return {
+    ...data,
+    preco_final: Math.round(preco_final * 100) / 100, // Arredonda para 2 casas decimais
+  };
+});
+
+// Exemplo: Schema que formata dados para exibição
+export const produtoDisplaySchema = produtoSchema.transform((data) => {
+  return {
+    ...data,
+    nome_formatado: data.nome.toUpperCase(),
+    preco_custo_formatado: `R$ ${data.preco_custo.toFixed(2)}`,
+    preco_minimo_venda_formatado: `R$ ${data.preco_minimo_venda.toFixed(2)}`,
+    preco_revenda_formatado: `R$ ${data.preco_revenda.toFixed(2)}`,
+  };
+});
+
 export type ProdutoFormData = z.infer<typeof produtoSchema>;
 export type UpdateProdutoFormData = z.infer<typeof updateProdutoSchema>;
+export type ProdutoBackendData = z.infer<typeof produtoBackendSchema>;
+export type UpdateProdutoBackendData = z.infer<
+  typeof updateProdutoBackendSchema
+>;
+export type ProdutoComPrecoFinalData = z.infer<
+  typeof produtoComPrecoFinalSchema
+>;
+export type ProdutoDisplayData = z.infer<typeof produtoDisplaySchema>;

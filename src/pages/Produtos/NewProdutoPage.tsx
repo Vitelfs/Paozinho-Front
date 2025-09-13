@@ -32,7 +32,9 @@ import {
 import { Heading1, Paragraph } from "@/components/ui/typography";
 import {
   produtoSchema,
+  produtoBackendSchema,
   type ProdutoFormData,
+  type ProdutoBackendData,
 } from "../../schemas/produto.schema";
 import { toast } from "react-toastify";
 import { produtoService } from "@/services/produto.service";
@@ -83,7 +85,17 @@ export function NewProdutoPage() {
     setIsSubmitting(true);
 
     try {
-      await produtoService.createProduto(data);
+      // Valida com schema completo (incluindo margem de lucro)
+      const validatedData = produtoSchema.parse(data);
+
+      // Transforma para enviar ao backend (remove margem de lucro)
+      const backendData: ProdutoBackendData =
+        produtoBackendSchema.parse(validatedData);
+
+      console.log("Dados validados (frontend):", validatedData);
+      console.log("Dados para backend:", backendData);
+
+      await produtoService.createProduto(backendData);
       navigate("/produtos?created=true");
     } catch (error) {
       console.error("Erro ao criar produto:", error);

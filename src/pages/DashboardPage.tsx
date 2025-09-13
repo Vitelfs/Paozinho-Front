@@ -5,7 +5,7 @@ export function DashboardPage() {
   return (
     <DefaultLayout>
       <div className="w-full">
-        <Heading1 className="mb-8">
+        <Heading1 className="mb-8"> 
           Dashboard - Pãozinho Delícia Gourmet
         </Heading1>
 

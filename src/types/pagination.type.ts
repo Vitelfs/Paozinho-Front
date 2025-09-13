@@ -15,3 +15,14 @@ export interface ProdutoPagination extends Pagination {
   nome?: string;
   categoria_id?: string;
 }
+
+export interface VendasPagination extends Pagination {
+  cliente_nome: string,
+  status: string,
+  data_inicio: Date,
+  data_fim: Date,
+}
+
+export interface RelatorioVendasPagination extends Pagination {
+  data_venda: Date,
+}

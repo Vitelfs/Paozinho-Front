@@ -19,6 +19,7 @@ export interface precoPersonalizado {
     descricao: string;
     preco_custo: number;
     preco_minimo_venda: number;
+    preco_revenda: number;
     categoria: {
       id: string;
       nome: string;

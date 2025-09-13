@@ -215,10 +215,12 @@ function ProdutoItem({
 
       <div className="flex flex-wrap gap-1 mb-2">
         <Badge variant="secondary" className="text-xs">
-          Venda: R$ {produto.preco_minimo_venda.toFixed(2).replace(".", ",")}
+          Venda: R${" "}
+          {Number(produto.preco_minimo_venda).toFixed(2).replace(".", ",")}
         </Badge>
         <Badge variant="outline" className="text-xs">
-          Revenda: R$ {produto.preco_revenda.toFixed(2).replace(".", ",")}
+          Revenda: R${" "}
+          {Number(produto.preco_revenda).toFixed(2).replace(".", ",")}
         </Badge>
       </div>
     </div>
@@ -235,10 +237,10 @@ function PrecoPersonalizadoItem({
 }: PrecoPersonalizadoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [precoVenda, setPrecoVenda] = useState(
-    precoPersonalizado.preco_venda.toFixed(2).replace(".", ",")
+    Number(precoPersonalizado.preco_venda).toFixed(2).replace(".", ",")
   );
   const [precoRevenda, setPrecoRevenda] = useState(
-    precoPersonalizado.preco_revenda.toFixed(2).replace(".", ",")
+    Number(precoPersonalizado.preco_revenda).toFixed(2).replace(".", ",")
   );
 
   const {
@@ -403,10 +405,14 @@ function PrecoPersonalizadoItem({
                 e.stopPropagation();
                 setIsEditing(false);
                 setPrecoVenda(
-                  precoPersonalizado.preco_venda.toFixed(2).replace(".", ",")
+                  Number(precoPersonalizado.preco_venda)
+                    .toFixed(2)
+                    .replace(".", ",")
                 );
                 setPrecoRevenda(
-                  precoPersonalizado.preco_revenda.toFixed(2).replace(".", ",")
+                  Number(precoPersonalizado.preco_revenda)
+                    .toFixed(2)
+                    .replace(".", ",")
                 );
               }}
               onPointerDown={(e) => e.stopPropagation()}
@@ -421,23 +427,29 @@ function PrecoPersonalizadoItem({
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline" className="text-xs">
               Venda Original: R${" "}
-              {precoPersonalizado.produto.preco_minimo_venda
+              {Number(precoPersonalizado.produto.preco_minimo_venda)
                 .toFixed(2)
                 .replace(".", ",")}
             </Badge>
             <Badge variant="outline" className="text-xs">
               Revenda Original: R${" "}
-              {precoPersonalizado.preco_revenda.toFixed(2).replace(".", ",")}
+              {Number(precoPersonalizado.produto.preco_revenda)
+                .toFixed(2)
+                .replace(".", ",")}
             </Badge>
           </div>
           <div className="flex flex-wrap gap-1">
             <Badge variant="secondary" className="text-xs">
               Venda Personalizada: R${" "}
-              {precoPersonalizado.preco_venda.toFixed(2).replace(".", ",")}
+              {Number(precoPersonalizado.preco_venda)
+                .toFixed(2)
+                .replace(".", ",")}
             </Badge>
             <Badge variant="secondary" className="text-xs">
               Revenda Personalizada: R${" "}
-              {precoPersonalizado.preco_revenda.toFixed(2).replace(".", ",")}
+              {Number(precoPersonalizado.preco_revenda)
+                .toFixed(2)
+                .replace(".", ",")}
             </Badge>
           </div>
         </div>
@@ -468,13 +480,12 @@ function PaginationControls({
   return (
     <div className="flex items-center justify-between mt-4 pt-4 border-t">
       <div className="text-sm text-muted-foreground">
-      Mostrando {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}{" "}
-          a{" "}
-          {Math.min(
-            pagination.currentPage * pagination.itemsPerPage,
-            pagination.totalItems
-          )}{" "}
-          de {pagination.totalItems} itens
+        Mostrando {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} a{" "}
+        {Math.min(
+          pagination.currentPage * pagination.itemsPerPage,
+          pagination.totalItems
+        )}{" "}
+        de {pagination.totalItems} itens
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -544,6 +555,7 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
             nome: searchTerm || undefined,
           }
         );
+      console.log(response);
       setProdutosSemPreco(response.produtos || []);
       setProdutosTotal(response.total || 0);
     } catch (error) {
@@ -907,13 +919,15 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
                 <div className="flex flex-wrap gap-1 mb-2">
                   <Badge variant="secondary" className="text-xs">
                     Venda: R${" "}
-                    {activeProduto.preco_minimo_venda
+                    {Number(activeProduto.preco_minimo_venda)
                       .toFixed(2)
                       .replace(".", ",")}
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     Revenda: R${" "}
-                    {activeProduto.preco_revenda.toFixed(2).replace(".", ",")}
+                    {Number(activeProduto.preco_revenda)
+                      .toFixed(2)
+                      .replace(".", ",")}
                   </Badge>
                 </div>
               </div>
@@ -930,13 +944,13 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline" className="text-xs">
                     Venda Original: R${" "}
-                    {activePrecoPersonalizado.produto.preco_minimo_venda
+                    {Number(activePrecoPersonalizado.produto.preco_minimo_venda)
                       .toFixed(2)
                       .replace(".", ",")}
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     Revenda Original: R${" "}
-                    {activePrecoPersonalizado.preco_revenda
+                    {Number(activePrecoPersonalizado.produto.preco_revenda)
                       .toFixed(2)
                       .replace(".", ",")}
                   </Badge>
@@ -944,13 +958,13 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="secondary" className="text-xs">
                     Venda Personalizada: R${" "}
-                    {activePrecoPersonalizado.preco_venda
+                    {Number(activePrecoPersonalizado.preco_venda)
                       .toFixed(2)
                       .replace(".", ",")}
                   </Badge>
                   <Badge variant="secondary" className="text-xs">
                     Revenda Personalizada: R${" "}
-                    {activePrecoPersonalizado.preco_revenda
+                    {Number(activePrecoPersonalizado.preco_revenda)
                       .toFixed(2)
                       .replace(".", ",")}
                   </Badge>

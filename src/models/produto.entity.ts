@@ -7,9 +7,7 @@ export interface ProdutoEntity {
   descricao: string;
   preco_custo: number;
   preco_minimo_venda: number;
-  margem_lucro: number;
   preco_revenda: number;
-  margem_lucro_cliente: number;
 }
 
 export interface CreateProdutoEntity {
@@ -18,9 +16,7 @@ export interface CreateProdutoEntity {
   descricao: string;
   preco_custo: number;
   preco_minimo_venda: number;
-  margem_lucro: number;
   preco_revenda: number;
-  margem_lucro_cliente: number;
 }
 
 export interface UpdateProdutoEntity {
@@ -29,9 +25,7 @@ export interface UpdateProdutoEntity {
   descricao?: string;
   preco_custo?: number;
   preco_minimo_venda?: number;
-  margem_lucro?: number;
   preco_revenda?: number;
-  margem_lucro_cliente?: number;
 }
 
 export interface DeleteProdutoEntity {

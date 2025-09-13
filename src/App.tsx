@@ -6,7 +6,7 @@ import { NewClientePage } from "./pages/Clientes/NewClientePage";
 import { ProdutoPage } from "./pages/Produtos/ProdutoPage";
 import { NewProdutoPage } from "./pages/Produtos/NewProdutoPage";
 import { EditProdutoPage } from "./pages/Produtos/EditProdutoPage";
-import { PrecosPersonalizados } from "./pages/Produtos/PrecosPersonalizados";
+import { PrecosPersonalizados } from "./pages/Produtos/PrecosPersonalizadosPage";
 import { ClientePrecosPersonalizadosPage } from "./pages/Produtos/ClientePrecosPersonalizadosPage";
 import { CategoriasPage } from "./pages/Categorias/CategoriasPage";
 import { NewCategoriaPage } from "./pages/Categorias/NewCategoriaPage";
@@ -18,6 +18,11 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoutes";
 import { ThemeProvider } from "./routes/ThemeContext";
 import { EditClientePage } from "./pages/Clientes/EditClientePage";
+import { NewVenda } from "./pages/Vendas/NewVendaPage";
+import { EditVenda } from "./pages/Vendas/EditVendaPage";
+import { VendasPage } from "./pages/Vendas/VendasPage";
+import { ProcessarPagamentoPage } from "./pages/Vendas/ProcessarPagamentoPage";
+import { VendasRelatorioPage } from "./pages/Vendas/VendasRelatorioPage";
 
 function App() {
   return (
@@ -119,6 +124,46 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EditCategoriaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/nova"
+              element={
+                <ProtectedRoute>
+                  <NewVenda />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/editar/:id"
+              element={
+                <ProtectedRoute>
+                  <EditVenda />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/processar-pagamento/:id"
+              element={
+                <ProtectedRoute>
+                  <ProcessarPagamentoPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/relatorio"
+              element={
+                <ProtectedRoute>
+                  <VendasRelatorioPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas"
+              element={
+                <ProtectedRoute>
+                  <VendasPage />
                 </ProtectedRoute>
               }
             />

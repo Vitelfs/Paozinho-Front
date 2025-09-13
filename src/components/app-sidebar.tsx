@@ -90,16 +90,16 @@ const data = {
       icon: BookOpen,
       items: [
         {
+          title: "Vendas",
+          url: "/vendas",
+        },
+        {
           title: "Nova Venda",
           url: "/vendas/nova",
         },
         {
-          title: "Histórico",
-          url: "/vendas/historico",
-        },
-        {
           title: "Relatórios",
-          url: "/vendas/relatorios",
+          url: "/vendas/relatorio",
         },
       ],
     },
