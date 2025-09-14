@@ -30,10 +30,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Alteração 1: Tipos de data agora são Date | undefined
 interface VendasFilters {
   status: string;
-  data_inicio: string;
-  data_fim: string;
+  data_inicio: Date | undefined;
+  data_fim: Date | undefined;
   cliente_nome: string;
 }
 
@@ -56,12 +57,16 @@ export function VendasPage() {
   const [selectedVenda, setSelectedVenda] = useState<VendasEntity | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estado dos filtros
-  const [filters, setFilters] = useState<VendasFilters>({
-    status: searchParams.get("status") || "todos",
-    data_inicio: searchParams.get("data_inicio") || "",
-    data_fim: searchParams.get("data_fim") || "",
-    cliente_nome: searchParams.get("cliente_nome") || "",
+  // Alteração 2: Estado dos filtros inicializado convertendo string da URL para Date
+  const [filters, setFilters] = useState<VendasFilters>(() => {
+    const dataInicioParam = searchParams.get("data_inicio");
+    const dataFimParam = searchParams.get("data_fim");
+    return {
+      status: searchParams.get("status") || "todos",
+      data_inicio: dataInicioParam ? new Date(dataInicioParam) : undefined,
+      data_fim: dataFimParam ? new Date(dataFimParam) : undefined,
+      cliente_nome: searchParams.get("cliente_nome") || "",
+    };
   });
 
   const [confirmAction, setConfirmAction] = useState<{
@@ -104,37 +109,36 @@ export function VendasPage() {
 
       const offset = (pagination.currentPage - 1) * ITEMS_PER_PAGE;
 
-      // Preparar parâmetros de filtro
       const filterParams: any = {
         limit: ITEMS_PER_PAGE,
         offset: offset,
       };
 
-      // Adicionar filtros apenas se não forem valores padrão
       if (filters.status && filters.status !== "todos") {
         filterParams.status = filters.status;
       }
 
-      // Adicionar busca por nome do cliente se houver
       if (filters.cliente_nome.trim()) {
         filterParams.cliente_nome = filters.cliente_nome.trim();
       }
 
+      // Converter Date para ISO string com horários específicos
       if (filters.data_inicio) {
-        filterParams.data_inicio = new Date(filters.data_inicio);
+        const dataInicio = new Date(filters.data_inicio);
+        dataInicio.setHours(0, 0, 0, 0); // 00:00:00.000Z
+        filterParams.data_inicio = dataInicio.toISOString();
       }
 
       if (filters.data_fim) {
-        filterParams.data_fim = new Date(filters.data_fim);
+        const dataFim = new Date(filters.data_fim);
+        dataFim.setHours(23, 59, 59, 999); // 23:59:59.999Z
+        filterParams.data_fim = dataFim.toISOString();
       }
 
-      console.log("Enviando filtros:", filterParams);
       const data: VendasResponse = await vendasService.getVendas(filterParams);
-      console.log(data);
       setVendas(data.vendas || []);
       pagination.updateTotalItems(data.total || 0);
 
-      // Atualizar estatísticas da API
       setEstatisticasAPI({
         totalPagas: data.totalPagas || 0,
         totalPendentes: data.totalPendentes || 0,
@@ -155,7 +159,7 @@ export function VendasPage() {
   const handleUpdateStatus = useCallback(
     async (vendaId: string, novoStatus: StatusVenda) => {
       try {
-        await vendasService.updateStatusVenda(vendaId, novoStatus);
+        await vendasService.updateStatusVenda([vendaId], novoStatus);
 
         const statusLabels: Record<StatusVenda, string> = {
           [StatusVenda.PENDENTE]: "Pendente",
@@ -166,12 +170,36 @@ export function VendasPage() {
         };
 
         toast.success(`Status atualizado para: ${statusLabels[novoStatus]}`);
-
-        // Recarregar a lista de vendas
         loadVendas();
       } catch (error) {
         console.error("Erro ao atualizar status:", error);
         toast.error("Erro ao atualizar status da venda");
+      }
+    },
+    [loadVendas]
+  );
+
+  const handleBulkUpdateStatus = useCallback(
+    async (vendas: VendasEntity[], novoStatus: StatusVenda) => {
+      try {
+        const vendaIds = vendas.map((v) => v.id);
+        await vendasService.updateStatusVenda(vendaIds, novoStatus);
+
+        const statusLabels: Record<StatusVenda, string> = {
+          [StatusVenda.PENDENTE]: "Pendente",
+          [StatusVenda.PAGO]: "Pago",
+          [StatusVenda.CANCELADO]: "Cancelado",
+          [StatusVenda.ENTREGUE]: "Entregue",
+          [StatusVenda.PRODUZIDO]: "Produzido",
+        };
+
+        toast.success(
+          `${vendas.length} venda(s) atualizada(s) para: ${statusLabels[novoStatus]}`
+        );
+        loadVendas();
+      } catch (error) {
+        console.error("Erro ao atualizar status em massa:", error);
+        toast.error("Erro ao atualizar status das vendas");
       }
     },
     [loadVendas]
@@ -245,6 +273,81 @@ export function VendasPage() {
 
   // Memoizar colunas e ações
   const columns = useMemo(() => createVendasColumns(), []);
+
+  // Ações em massa
+  const bulkActions = useMemo(
+    () => [
+      {
+        id: "produzido",
+        label: "Marcar como Produzido",
+        icon: Package,
+        variant: "outline" as const,
+        onClick: (selectedVendas: VendasEntity[]) => {
+          const validVendas = selectedVendas.filter(
+            (v) => v.status === StatusVenda.PENDENTE
+          );
+          if (validVendas.length === 0) {
+            toast.error(
+              "Apenas vendas pendentes podem ser marcadas como produzidas"
+            );
+            return;
+          }
+          openConfirmDialog(
+            "Marcar como Produzido",
+            `Confirma que ${validVendas.length} venda(s) foram produzidas?`,
+            () => handleBulkUpdateStatus(validVendas, StatusVenda.PRODUZIDO),
+            "Confirmar"
+          );
+        },
+      },
+      {
+        id: "entregue",
+        label: "Marcar como Entregue",
+        icon: Truck,
+        variant: "outline" as const,
+        onClick: (selectedVendas: VendasEntity[]) => {
+          const validVendas = selectedVendas.filter(
+            (v) => v.status === StatusVenda.PRODUZIDO
+          );
+          if (validVendas.length === 0) {
+            toast.error(
+              "Apenas vendas produzidas podem ser marcadas como entregues"
+            );
+            return;
+          }
+          openConfirmDialog(
+            "Marcar como Entregue",
+            `Confirma que ${validVendas.length} venda(s) foram entregues?`,
+            () => handleBulkUpdateStatus(validVendas, StatusVenda.ENTREGUE),
+            "Confirmar"
+          );
+        },
+      },
+      {
+        id: "cancelar",
+        label: "Cancelar Vendas",
+        icon: XCircle,
+        variant: "destructive" as const,
+        onClick: (selectedVendas: VendasEntity[]) => {
+          const validVendas = selectedVendas.filter(
+            (v) => v.status === StatusVenda.PENDENTE
+          );
+          if (validVendas.length === 0) {
+            toast.error("Apenas vendas pendentes podem ser canceladas");
+            return;
+          }
+          openConfirmDialog(
+            "Cancelar Vendas",
+            `Tem certeza que deseja cancelar ${validVendas.length} venda(s)?`,
+            () => handleBulkUpdateStatus(validVendas, StatusVenda.CANCELADO),
+            "Cancelar",
+            "destructive"
+          );
+        },
+      },
+    ],
+    [handleBulkUpdateStatus, openConfirmDialog]
+  );
   const actions = useMemo(
     () => [
       {
@@ -370,21 +473,29 @@ export function VendasPage() {
     loadVendas();
   }, [loadVendas]);
 
-  // Função para atualizar filtros
+  // Alteração 4: Converter Date para string ao atualizar a URL
   const handleFiltersChange = useCallback(
     (newFilters: VendasFilters) => {
       setFilters(newFilters);
 
-      // Atualizar URL com os novos filtros
       const params = new URLSearchParams();
-      Object.entries(newFilters).forEach(([key, value]) => {
-        if (value && value !== "todos") {
-          params.set(key, value);
-        }
-      });
+      if (newFilters.status && newFilters.status !== "todos") {
+        params.set("status", newFilters.status);
+      }
+      if (newFilters.cliente_nome) {
+        params.set("cliente_nome", newFilters.cliente_nome);
+      }
+      if (newFilters.data_inicio) {
+        params.set(
+          "data_inicio",
+          newFilters.data_inicio.toISOString().split("T")[0]
+        );
+      }
+      if (newFilters.data_fim) {
+        params.set("data_fim", newFilters.data_fim.toISOString().split("T")[0]);
+      }
       setSearchParams(params);
 
-      // Reset da paginação quando filtros mudarem
       if (pagination.currentPage > 1) {
         pagination.setCurrentPage(1);
       }
@@ -392,9 +503,6 @@ export function VendasPage() {
     [setSearchParams, pagination]
   );
 
-  // Os dados já vêm filtrados do servidor, não precisa filtrar localmente
-
-  // Calcular estatísticas usando dados da API
   const estatisticas = useMemo(() => {
     const totalVendas = vendas.length;
     const vendasProduzidas = vendas.filter(
@@ -436,19 +544,19 @@ export function VendasPage() {
             onPageChange: pagination.setCurrentPage,
           }}
           actions={actions}
+          bulkActions={bulkActions}
+          enableSelection={true}
           emptyMessage="Nenhuma venda encontrada"
           emptyDescription="Não há vendas cadastradas no momento."
         />
       </div>
 
-      {/* Modal de Detalhes da Venda */}
       <VendaDetailsModal
         venda={selectedVenda}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
       />
 
-      {/* Dialog de Confirmação */}
       <AlertDialog
         open={confirmAction.isOpen}
         onOpenChange={closeConfirmDialog}

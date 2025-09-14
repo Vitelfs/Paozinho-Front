@@ -9,7 +9,7 @@ import {
   Search,
   User,
   Package,
-  Calendar,
+  Calendar as CalendarIcon,
   FileText,
 } from "lucide-react";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
@@ -19,7 +19,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heading1, Paragraph } from "@/components/ui/typography";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "react-toastify";
+import { cn } from "@/lib/utils";
 import { clienteService } from "@/services/cliente.service";
 import { produtoService } from "@/services/produto.service";
 import { vendasService } from "@/services/vendas.service";
@@ -53,6 +60,7 @@ export function EditVenda() {
   const [itensVenda, setItensVenda] = useState<ItemVenda[]>([]);
   const [dataVenda, setDataVenda] = useState(new Date());
   const [observacoes, setObservacoes] = useState("");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // Estados de busca e filtros
   const [buscaCliente, setBuscaCliente] = useState("");
@@ -382,6 +390,13 @@ export function EditVenda() {
     navigate("/vendas");
   };
 
+  const handleDateChange = useCallback((date: Date | undefined) => {
+    if (date) {
+      setDataVenda(date);
+      setIsDatePickerOpen(false);
+    }
+  }, []);
+
   if (loadingVenda) {
     return (
       <DefaultLayout>
@@ -634,19 +649,39 @@ export function EditVenda() {
               <CardContent className="space-y-4">
                 {/* Data da Venda */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="data-venda"
-                    className="flex items-center gap-2"
-                  >
-                    <Calendar className="h-4 w-4" />
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
                     Data da Venda
                   </Label>
-                  <Input
-                    id="data-venda"
-                    type="date"
-                    value={dataVenda.toISOString().split("T")[0]}
-                    onChange={(e) => setDataVenda(new Date(e.target.value))}
-                  />
+                  <Popover
+                    open={isDatePickerOpen}
+                    onOpenChange={setIsDatePickerOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dataVenda && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataVenda ? (
+                          dataVenda.toLocaleDateString()
+                        ) : (
+                          <span>Selecione uma data</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataVenda}
+                        onSelect={handleDateChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Observações */}

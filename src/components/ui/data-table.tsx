@@ -13,7 +13,7 @@ import {
   type VisibilityState,
   type RowSelectionState,
 } from "@tanstack/react-table";
-import { Search, MoreHorizontal, ChevronDown } from "lucide-react";
+import { Search, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Pagination,
   PaginationContent,
@@ -134,20 +135,48 @@ export function DataTable<T>({
 
     const selectionColumn: ColumnDef<T> = {
       id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Selecionar todos"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Selecionar linha"
-        />
-      ),
+      header: ({ table }) => {
+        // Filtrar apenas linhas que podem ser selecionadas
+        const selectableRows = table.getRowModel().rows.filter((row) => {
+          const item = row.original as any;
+          return item.status !== "PAGO";
+        });
+
+        const allSelectableSelected =
+          selectableRows.length > 0 &&
+          selectableRows.every((row) => row.getIsSelected());
+
+        return (
+          <Checkbox
+            checked={allSelectableSelected}
+            onCheckedChange={(value) => {
+              // Selecionar/desselecionar apenas linhas que podem ser selecionadas
+              selectableRows.forEach((row) => row.toggleSelected(!!value));
+            }}
+            aria-label="Selecionar todos"
+            className="border-2 border-gray-400 dark:border-gray-500 data-[state=checked]:border-primary data-[state=checked]:bg-primary hover:border-gray-600 dark:hover:border-gray-300 transition-colors"
+          />
+        );
+      },
+      cell: ({ row }) => {
+        // Para vendas, desabilitar seleção se status for PAGO
+        const item = row.original as any;
+        const isDisabled = item.status === "PAGO";
+
+        return (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Selecionar linha"
+            disabled={isDisabled}
+            className={cn(
+              "border-2 border-gray-400 dark:border-gray-500 data-[state=checked]:border-primary data-[state=checked]:bg-primary hover:border-gray-600 dark:hover:border-gray-300 transition-colors",
+              isDisabled &&
+                "opacity-50 cursor-not-allowed hover:border-gray-400 dark:hover:border-gray-500"
+            )}
+          />
+        );
+      },
       enableSorting: false,
       enableHiding: false,
     };

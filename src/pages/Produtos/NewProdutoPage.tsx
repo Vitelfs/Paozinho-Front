@@ -37,6 +37,7 @@ import {
   type ProdutoBackendData,
 } from "../../schemas/produto.schema";
 import { toast } from "react-toastify";
+import { calculateMarkup } from "@/utils/dataFormater";
 import { produtoService } from "@/services/produto.service";
 import { categoriaService } from "@/services/categoria.service";
 import type { CategoriaEntity } from "@/models/categoria.entity";
@@ -136,7 +137,7 @@ export function NewProdutoPage() {
           : form.getValues("preco_minimo_venda");
 
       if (precoCusto > 0 && precoVenda > 0) {
-        const margem = ((precoVenda - precoCusto) / precoCusto) * 100;
+        const margem = calculateMarkup(precoCusto, precoVenda);
         form.setValue("margem_lucro", Math.round(margem * 100) / 100);
       }
     }
@@ -153,8 +154,7 @@ export function NewProdutoPage() {
           : form.getValues("preco_revenda");
 
       if (precoMinimoVenda > 0 && precoRevenda > 0) {
-        const margemCliente =
-          ((precoRevenda - precoMinimoVenda) / precoMinimoVenda) * 100;
+        const margemCliente = calculateMarkup(precoMinimoVenda, precoRevenda);
         form.setValue(
           "margem_lucro_cliente",
           Math.round(margemCliente * 100) / 100
@@ -336,8 +336,10 @@ export function NewProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {
@@ -366,8 +368,10 @@ export function NewProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {
@@ -421,8 +425,10 @@ export function NewProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {

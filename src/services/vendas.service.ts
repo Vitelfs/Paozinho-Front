@@ -20,10 +20,8 @@ export const vendasService = {
     const response = await request.put(`/vendas/${id}`, venda);
     return response.data;
   },
-  updateStatusVenda: async (id: string, status: StatusVenda) => {
-    console.log("status", status);
-    console.log("id", id);
-    const response = await request.put(`/vendas/${id}/status`, { status });
+  updateStatusVenda: async (ids: string[], status: StatusVenda) => {
+    const response = await request.put(`/vendas/status`, { status, ids });
     return response.data;
   },
   processarVenda: async (id: string, dados: ProcessarVendaEntity) => {

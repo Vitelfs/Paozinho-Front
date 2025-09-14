@@ -16,7 +16,6 @@ import {
   Clock,
   Phone,
   CreditCard,
-  RotateCcw,
   DollarSign,
 } from "lucide-react";
 import { StatusVenda } from "@/models/vendas.entity";
@@ -96,32 +95,31 @@ export function VendaDetailsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Package className="h-5 w-5" />
-            Detalhes da Venda #{venda.id.slice(-8)}
+          <DialogTitle className="flex items-center justify-between text-xl">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Detalhes da Venda #{venda.id.slice(-8)}
+            </div>
+            <Badge
+              variant={statusConfig.variant}
+              className={`text-sm font-semibold px-3 mr-2 py-1 ${
+                statusConfig.variant === "default"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : statusConfig.variant === "destructive"
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : statusConfig.variant === "secondary"
+                  ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                  : statusConfig.variant === "outline"
+                  ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                  : ""
+              }`}
+            >
+              {statusConfig.label}
+            </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Status e Total */}
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-3">
-              <Badge variant={statusConfig.variant} className="text-sm">
-                {statusConfig.label}
-              </Badge>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(venda.total)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total da Venda
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
           {/* Informações do Cliente */}
           <Card>
             <CardHeader>
@@ -206,126 +204,135 @@ export function VendaDetailsModal({
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b border-border">
+                    <tr className="border-b border-border bg-muted/50">
                       <th className="text-left p-3 font-semibold text-sm">
-                        Nome
+                        Produto
                       </th>
                       <th className="text-right p-3 font-semibold text-sm">
-                        Preço Unitário
+                        Preço Unit.
                       </th>
                       <th className="text-center p-3 font-semibold text-sm">
-                        Quantidade
+                        Qtd.
                       </th>
                       <th className="text-right p-3 font-semibold text-sm">
                         Subtotal
                       </th>
+                      <th className="text-right p-3 font-semibold text-sm">
+                        Devoluções
+                      </th>
+                      <th className="text-left p-3 font-semibold text-sm">
+                        Motivo
+                      </th>
+                      <th className="text-right p-3 font-semibold text-sm">
+                        Saldo Final
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {venda.item_venda.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className={`border-b border-border hover:bg-muted/30 transition-colors ${
-                          index % 2 === 0 ? "bg-background" : "bg-muted/20"
-                        }`}
-                      >
-                        <td className="p-3">
-                          <div>
-                            <div className="font-medium text-sm">
-                              {item.produto.nome}
+                    {venda.item_venda.map((item, index) => {
+                      const subtotal =
+                        Number(item.preco_venda) * item.quantidade;
+                      const totalDevolucoes = item.devolucoes
+                        ? item.devolucoes.reduce(
+                            (sum, dev) =>
+                              sum + Number(item.preco_venda) * dev.quantidade,
+                            0
+                          )
+                        : 0;
+                      const saldo = subtotal - totalDevolucoes;
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className={`border-b border-border hover:bg-muted/30 transition-colors ${
+                            index % 2 === 0 ? "bg-background" : "bg-muted/10"
+                          }`}
+                        >
+                          <td className="p-3">
+                            <div className="space-y-1">
+                              <div className="font-medium text-sm text-foreground">
+                                {item.produto.nome}
+                              </div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                #{item.produto.id.slice(-8)}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              ID: {item.produto.id.slice(-8)}
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="text-sm font-semibold text-foreground">
+                              {formatCurrency(item.preco_venda)}
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-3 text-right">
-                          <div className="text-sm font-medium">
-                            {formatCurrency(item.preco_venda)}
-                          </div>
-                        </td>
-                        <td className="p-3 text-center">
-                          <Badge
-                            variant="outline"
-                            className="text-sm font-bold"
-                          >
-                            {item.quantidade}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-right">
-                          <div className="text-sm font-bold text-green-600">
-                            {formatCurrency(
-                              (
-                                Number(item.preco_venda) * item.quantidade
-                              ).toString()
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge
+                              variant="secondary"
+                              className="text-sm font-bold px-2 py-1"
+                            >
+                              {item.quantidade}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="text-sm font-bold text-green-600">
+                              {formatCurrency(subtotal.toString())}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="text-sm">
+                              {totalDevolucoes > 0 ? (
+                                <div className="text-red-600 font-bold">
+                                  -{formatCurrency(totalDevolucoes.toString())}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">
+                                  -
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="text-sm">
+                              {item.devolucoes && item.devolucoes.length > 0 ? (
+                                <div className="space-y-1">
+                                  {item.devolucoes.map((dev, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded-md border border-red-200 dark:border-red-800"
+                                    >
+                                      <div className="text-xs text-red-700 dark:text-red-300 font-medium">
+                                        {dev.motivo}
+                                      </div>
+                                      <div className="text-xs text-red-600 dark:text-red-400">
+                                        Qtd dev: {dev.quantidade}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">
+                                  -
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div
+                              className={`text-sm font-bold ${
+                                saldo > 0
+                                  ? "text-green-600"
+                                  : saldo < 0
+                                  ? "text-red-600"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {formatCurrency(saldo.toString())}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-
-              {/* Devoluções */}
-              {venda.item_venda.some(
-                (item) => item.devolucoes && item.devolucoes.length > 0
-              ) && (
-                <div className="mt-6">
-                  <Separator className="mb-4" />
-                  <div className="flex items-center gap-2 mb-4">
-                    <RotateCcw className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    <h4 className="font-semibold text-red-600 dark:text-red-400">
-                      Devoluções
-                    </h4>
-                  </div>
-                  <div className="space-y-3">
-                    {venda.item_venda.map(
-                      (item) =>
-                        item.devolucoes &&
-                        item.devolucoes.length > 0 && (
-                          <div
-                            key={item.id}
-                            className="bg-red-50 dark:bg-red-950/30 p-4 rounded-lg border border-red-200 dark:border-red-800"
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <Package className="h-4 w-4 text-red-600 dark:text-red-400" />
-                              <span className="font-medium text-red-800 dark:text-red-200">
-                                {item.produto.nome}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {item.devolucoes.map((devolucao, devIndex) => (
-                                <div
-                                  key={devIndex}
-                                  className="bg-white dark:bg-red-900/20 p-3 rounded border border-red-200 dark:border-red-700"
-                                >
-                                  <div className="flex justify-between items-start mb-1">
-                                    <span className="font-medium text-red-700 dark:text-red-300 text-sm">
-                                      Quantidade: {devolucao.quantidade}
-                                    </span>
-                                    <span className="text-red-600 dark:text-red-400 font-bold text-sm">
-                                      -
-                                      {formatCurrency(
-                                        (
-                                          Number(item.preco_venda) *
-                                          devolucao.quantidade
-                                        ).toString()
-                                      )}
-                                    </span>
-                                  </div>
-                                  <p className="text-red-600 dark:text-red-400 text-xs">
-                                    Motivo: {devolucao.motivo}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                    )}
-                  </div>
-                </div>
-              )}
 
               <Separator className="my-4" />
 

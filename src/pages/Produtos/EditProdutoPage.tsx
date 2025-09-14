@@ -32,12 +32,15 @@ import {
 import { Heading1, Paragraph } from "@/components/ui/typography";
 import {
   updateProdutoSchema,
+  updateProdutoBackendSchema,
   type UpdateProdutoFormData,
+  type UpdateProdutoBackendData,
 } from "@/schemas/produto.schema";
 import { produtoService } from "@/services/produto.service";
 import { categoriaService } from "@/services/categoria.service";
 import type { CategoriaEntity } from "@/models/categoria.entity";
 import { toast } from "react-toastify";
+import { calculateMarkup } from "@/utils/dataFormater";
 
 export function EditProdutoPage() {
   const navigate = useNavigate();
@@ -55,10 +58,16 @@ export function EditProdutoPage() {
       nome: produto?.nome || "",
       categoria_id: produto?.categoria?.id || "",
       descricao: produto?.descricao || "",
-      preco_custo: produto?.preco_custo || 0,
-      preco_minimo_venda: produto?.preco_minimo_venda || 0,
+      preco_custo: produto?.preco_custo
+        ? parseFloat(produto.preco_custo.toString())
+        : 0,
+      preco_minimo_venda: produto?.preco_minimo_venda
+        ? parseFloat(produto.preco_minimo_venda.toString())
+        : 0,
       margem_lucro: produto?.margem_lucro || 0,
-      preco_revenda: produto?.preco_revenda || 0,
+      preco_revenda: produto?.preco_revenda
+        ? parseFloat(produto.preco_revenda.toString())
+        : 0,
       margem_lucro_cliente: produto?.margem_lucro_cliente || 0,
     },
   });
@@ -80,30 +89,59 @@ export function EditProdutoPage() {
     loadCategorias();
   }, []);
 
+  // Calcular margens automaticamente
+  const calcularMargens = () => {
+    const precoCusto = parseFloat(produto?.preco_custo?.toString() || "0");
+    const precoMinimoVenda = parseFloat(
+      produto?.preco_minimo_venda?.toString() || "0"
+    );
+    const precoRevenda = parseFloat(produto?.preco_revenda?.toString() || "0");
+
+    // Calcular margem de lucro normal usando a função utilitária
+    if (precoCusto > 0 && precoMinimoVenda > 0) {
+      const margemCalculada =
+        Math.round(calculateMarkup(precoCusto, precoMinimoVenda) * 100) / 100;
+      form.setValue("margem_lucro", margemCalculada);
+      setMargemLucroValue(margemCalculada.toFixed(2).replace(".", ","));
+    }
+
+    // Calcular margem de lucro do cliente usando a função utilitária
+    if (precoMinimoVenda > 0 && precoRevenda > 0) {
+      const margemClienteCalculada =
+        Math.round(calculateMarkup(precoMinimoVenda, precoRevenda) * 100) / 100;
+      form.setValue("margem_lucro_cliente", margemClienteCalculada);
+      setMargemLucroClienteValue(
+        margemClienteCalculada.toFixed(2).replace(".", ",")
+      );
+    }
+  };
+
   // Verificar se o produto foi passado via state
   useEffect(() => {
     if (!produto) {
       toast.error("Produto não encontrado");
       navigate("/produtos");
     } else {
-      // Inicializar os valores dos estados locais
-      setMargemLucroValue(
-        produto.margem_lucro
-          ? produto.margem_lucro.toFixed(2).replace(".", ",")
-          : ""
-      );
-      setMargemLucroClienteValue(
-        produto.margem_lucro_cliente
-          ? produto.margem_lucro_cliente.toFixed(2).replace(".", ",")
-          : ""
-      );
+      // Calcular as margens automaticamente
+      calcularMargens();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [produto, navigate]);
 
   const onSubmit = async (data: UpdateProdutoFormData) => {
     setIsSubmitting(true);
     try {
-      await produtoService.updateProduto(produto.id, data);
+      // Valida com schema completo (incluindo margem de lucro)
+      const validatedData = updateProdutoSchema.parse(data);
+
+      // Transforma para enviar ao backend (remove margem de lucro)
+      const backendData: UpdateProdutoBackendData =
+        updateProdutoBackendSchema.parse(validatedData);
+
+      console.log("Dados validados (frontend):", validatedData);
+      console.log("Dados para backend:", backendData);
+
+      await produtoService.updateProduto(produto.id, backendData);
       navigate("/produtos?edited=true");
     } catch (error) {
       console.error("Erro ao editar produto:", error);
@@ -144,7 +182,7 @@ export function EditProdutoPage() {
           : form.getValues("preco_minimo_venda");
 
       if (precoCusto > 0 && precoVenda > 0) {
-        const margem = ((precoVenda - precoCusto) / precoCusto) * 100;
+        const margem = calculateMarkup(precoCusto, precoVenda);
         form.setValue("margem_lucro", Math.round(margem * 100) / 100);
       }
     }
@@ -161,8 +199,7 @@ export function EditProdutoPage() {
           : form.getValues("preco_revenda");
 
       if (precoMinimoVenda > 0 && precoRevenda > 0) {
-        const margemCliente =
-          ((precoRevenda - precoMinimoVenda) / precoMinimoVenda) * 100;
+        const margemCliente = calculateMarkup(precoMinimoVenda, precoRevenda);
         form.setValue(
           "margem_lucro_cliente",
           Math.round(margemCliente * 100) / 100
@@ -344,8 +381,10 @@ export function EditProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {
@@ -374,8 +413,10 @@ export function EditProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {
@@ -429,8 +470,10 @@ export function EditProdutoPage() {
                             type="text"
                             placeholder="0,00"
                             value={
-                              field.value
-                                ? field.value.toFixed(2).replace(".", ",")
+                              Number(field.value)
+                                ? Number(field.value)
+                                    .toFixed(2)
+                                    .replace(".", ",")
                                 : ""
                             }
                             onChange={(e) => {

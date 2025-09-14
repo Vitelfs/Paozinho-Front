@@ -54,8 +54,8 @@ interface ProdutoSemPrecoPersonalizado {
   preco_revenda: number;
   margem_lucro: number;
   margem_lucro_cliente: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   categoria_id: string;
 }
 
@@ -742,8 +742,8 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
             preco_revenda: precoPersonalizado.preco_revenda,
             margem_lucro: 0,
             margem_lucro_cliente: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
             categoria_id: precoPersonalizado.produto.categoria.id,
           };
 
