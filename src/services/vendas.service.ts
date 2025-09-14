@@ -34,13 +34,15 @@ export const vendasService = {
     return response.data;
   },
   getRelatorioVendas: async (dados: RelatorioVendasPagination) => {
+    console.log("dados", dados);
     const response = await request.get("/vendas/relatorio/producao", {
       params: dados,
     });
+    console.log("response", response.data);
     return response.data;
   },
-  getRelatorioVendasExcell: async (data_venda: Date) => {
-    const response = await request.get("/vendas/relatorio/producao/excel", {
+  getRelatorioVendasExcel: async (data_venda: Date) => {
+    const response = await request.get("/vendas/relatorio/producao/dados", {
       params: { data_venda },
     });
     return response.data;

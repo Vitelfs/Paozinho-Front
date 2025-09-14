@@ -209,7 +209,6 @@ export function NewVenda() {
         };
         setItensVenda((prev) => [...prev, novoItem]);
       }
-      toast.success(`${produto.nome} adicionado à venda`);
     },
     [itensVenda, obterPrecoProduto]
   );
@@ -219,7 +218,6 @@ export function NewVenda() {
     setItensVenda((prev) =>
       prev.filter((item) => item.produto.id !== produtoId)
     );
-    toast.success("Produto removido da venda");
   }, []);
 
   // Atualizar quantidade
@@ -345,35 +343,43 @@ export function NewVenda() {
                 </div>
 
                 {clienteSelecionado ? (
-                  <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">
+                  <div className="p-4 border rounded-xl bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-green-800 dark:text-green-200">
                           {clienteSelecionado.nome}
                         </h4>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
                           {clienteSelecionado.contato}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
                           {clienteSelecionado.endereco}
                         </p>
                         {loadingPrecosPersonalizados ? (
-                          <p className="text-xs text-blue-600 mt-1">
-                            Carregando preços personalizados...
-                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-green-600"></div>
+                            <p className="text-xs text-green-600">
+                              Carregando preços personalizados...
+                            </p>
+                          </div>
                         ) : clienteComPrecosPersonalizados &&
                           clienteComPrecosPersonalizados.precoPersonalizado
                             .length > 0 ? (
-                          <p className="text-xs text-green-600 mt-1">
-                            ⭐{" "}
-                            {
-                              clienteComPrecosPersonalizados.precoPersonalizado
-                                .length
-                            }{" "}
-                            produto(s) com preço personalizado
-                          </p>
+                          <div className="mt-2">
+                            <Badge className="text-xs bg-green-200 text-green-800 hover:bg-green-300 dark:bg-green-800 dark:text-green-200">
+                              ⭐{" "}
+                              {
+                                clienteComPrecosPersonalizados
+                                  .precoPersonalizado.length
+                              }{" "}
+                              produto(s) com preço personalizado
+                            </Badge>
+                          </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-green-600 dark:text-green-400 mt-2">
                             Usando preços padrão
                           </p>
                         )}
@@ -382,21 +388,24 @@ export function NewVenda() {
                         variant="outline"
                         size="sm"
                         onClick={() => setClienteSelecionado(null)}
+                        className="h-8 px-3 text-xs border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/30"
                       >
                         Alterar
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="max-h-60 overflow-y-auto space-y-2">
+                  <div className="max-h-80 overflow-y-auto">
                     {loadingClientes ? (
-                      <div className="text-center py-4">
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                         <p className="text-muted-foreground">
                           Carregando clientes...
                         </p>
                       </div>
                     ) : clientesFiltrados.length === 0 ? (
-                      <div className="text-center py-4">
+                      <div className="text-center py-8">
+                        <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <p className="text-muted-foreground">
                           {buscaCliente
                             ? "Nenhum cliente encontrado"
@@ -404,21 +413,32 @@ export function NewVenda() {
                         </p>
                       </div>
                     ) : (
-                      clientesFiltrados.map((cliente) => (
-                        <div
-                          key={cliente.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                          onClick={() => setClienteSelecionado(cliente)}
-                        >
-                          <h4 className="font-medium">{cliente.nome}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {cliente.contato}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {cliente.endereco}
-                          </p>
-                        </div>
-                      ))
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {clientesFiltrados.map((cliente) => (
+                          <div
+                            key={cliente.id}
+                            className="group p-4 border rounded-xl hover:border-primary/50 hover:shadow-md cursor-pointer transition-all duration-200 bg-card hover:bg-accent/50"
+                            onClick={() => setClienteSelecionado(cliente)}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                <User className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                                  {cliente.nome}
+                                </h4>
+                                <p className="text-xs text-muted-foreground truncate mt-1">
+                                  {cliente.contato}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate mt-1">
+                                  {cliente.endereco}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
@@ -444,15 +464,17 @@ export function NewVenda() {
                   />
                 </div>
 
-                <div className="max-h-80 overflow-y-auto space-y-2">
+                <div className="max-h-80 overflow-y-auto">
                   {loadingProdutos ? (
-                    <div className="text-center py-4">
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                       <p className="text-muted-foreground">
                         Carregando produtos...
                       </p>
                     </div>
                   ) : produtosFiltrados.length === 0 ? (
-                    <div className="text-center py-4">
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">
                         {buscaProduto
                           ? "Nenhum produto encontrado"
@@ -460,49 +482,65 @@ export function NewVenda() {
                       </p>
                     </div>
                   ) : (
-                    produtosFiltrados.map((produto) => (
-                      <div
-                        key={produto.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{produto.nome}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {produto.descricao}
-                            </p>
-                            <div className="flex gap-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                {produto.categoria.nome}
-                              </Badge>
-                              <Badge
-                                variant={
-                                  temPrecoPersonalizado(produto)
-                                    ? "default"
-                                    : "secondary"
-                                }
-                                className="text-xs"
-                              >
-                                R${" "}
-                                {Number(obterPrecoProduto(produto))
-                                  .toFixed(2)
-                                  .replace(".", ",")}
-                                {temPrecoPersonalizado(produto) && (
-                                  <span className="ml-1 text-xs">⭐</span>
-                                )}
-                              </Badge>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {produtosFiltrados.map((produto) => (
+                        <div
+                          key={produto.id}
+                          className="group p-4 border rounded-xl hover:border-primary/50 hover:shadow-md transition-all duration-200 bg-card hover:bg-accent/50"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                              <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                                  {produto.nome}
+                                </h4>
+                                <Button
+                                  size="sm"
+                                  onClick={() => adicionarProduto(produto)}
+                                  className="h-6 w-6 p-0 bg-primary hover:bg-primary/90 transition-colors flex-shrink-0"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {produto.descricao}
+                              </p>
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5"
+                                >
+                                  {produto.categoria.nome}
+                                </Badge>
+                                <Badge
+                                  variant={
+                                    temPrecoPersonalizado(produto)
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className={`text-xs px-2 py-0.5 ${
+                                    temPrecoPersonalizado(produto)
+                                      ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
+                                      : ""
+                                  }`}
+                                >
+                                  R${" "}
+                                  {Number(obterPrecoProduto(produto))
+                                    .toFixed(2)
+                                    .replace(".", ",")}
+                                  {temPrecoPersonalizado(produto) && (
+                                    <span className="ml-1">⭐</span>
+                                  )}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => adicionarProduto(produto)}
-                            className="ml-4"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -646,6 +684,15 @@ export function NewVenda() {
                       <span className="text-lg font-semibold">Total:</span>
                       <span className="text-lg font-semibold text-green-600">
                         R$ {Number(totalVenda).toFixed(2).replace(".", ",")}
+                      </span>
+                      <span className="text-md font-semibold">
+                        Total de bolos:
+                      </span>
+                      <span className="text-md font-semibold text-purple-600">
+                        {itensVenda.reduce(
+                          (total, item) => total + item.quantidade,
+                          0
+                        )}
                       </span>
                     </div>
                   </div>

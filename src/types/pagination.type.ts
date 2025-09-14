@@ -17,12 +17,12 @@ export interface ProdutoPagination extends Pagination {
 }
 
 export interface VendasPagination extends Pagination {
-  cliente_nome: string,
-  status: string,
-  data_inicio: Date,
-  data_fim: Date,
+  cliente_nome?: string;
+  status?: string;
+  data_inicio?: Date;
+  data_fim?: Date;
 }
 
 export interface RelatorioVendasPagination extends Pagination {
-  data_venda: Date,
+  data_venda: Date;
 }

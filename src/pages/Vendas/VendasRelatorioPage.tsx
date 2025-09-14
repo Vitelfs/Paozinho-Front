@@ -28,16 +28,53 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "react-toastify";
 
 import { vendasService } from "@/services/vendas.service";
-import type { RelatorioVendasEntity } from "@/models/vendas.entity";
+import {
+  gerarRelatorioProducaoExcel,
+  criarResumoProdutos,
+  type RelatorioProducaoData,
+} from "@/utils/excelGenerator";
+
+// Tipo para o estado dos relatórios
+type RelatorioVenda = {
+  id: string;
+  cliente_id: string;
+  total: string;
+  status: "PENDENTE";
+  observacoes: string | null;
+  data_venda: string;
+  createdAt: string;
+  updatedAt: string;
+  cliente: {
+    id: string;
+    nome: string;
+    contato: string;
+  };
+  item_venda: Array<{
+    id: string;
+    venda_id: string;
+    produto_id: string;
+    quantidade: number;
+    preco_venda: string;
+    createdAt: string;
+    updatedAt: string;
+    produto: {
+      nome: string;
+    };
+  }>;
+};
 import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 20;
 
 export function VendasRelatorioPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [relatorios, setRelatorios] = useState<RelatorioVendasEntity["vendas"]>(
-    []
-  );
+  // Criar data de hoje com horário zerado (início do dia)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [relatorios, setRelatorios] = useState<RelatorioVenda[]>([]);
+  const [relatorioData, setRelatorioData] =
+    useState<RelatorioProducaoData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,6 +91,7 @@ export function VendasRelatorioPage() {
 
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
+      // Carregar dados antigos para a tabela
       const data = await vendasService.getRelatorioVendas({
         data_venda: selectedDate,
         limit: ITEMS_PER_PAGE,
@@ -62,6 +100,18 @@ export function VendasRelatorioPage() {
 
       setRelatorios(data.vendas || []);
       setTotalItems(data.total || 0);
+
+      // Carregar dados novos para estatísticas e resumo
+      try {
+        const relatorioCompleto = await vendasService.getRelatorioVendasExcel(
+          selectedDate
+        );
+        setRelatorioData(relatorioCompleto);
+      } catch (err) {
+        console.warn("Não foi possível carregar dados do novo formato:", err);
+        // Manter funcionando com dados antigos
+        setRelatorioData(null);
+      }
     } catch (err) {
       console.error("Erro ao carregar relatórios:", err);
       setError("Erro ao carregar relatórios. Tente novamente.");
@@ -75,23 +125,10 @@ export function VendasRelatorioPage() {
     try {
       setExportingExcel(true);
 
-      const data = await vendasService.getRelatorioVendasExcell(selectedDate);
+      const data = await vendasService.getRelatorioVendasExcel(selectedDate);
 
-      // Criar blob e download
-      const blob = new Blob([data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `relatorio-producao-${format(
-        selectedDate,
-        "dd-MM-yyyy"
-      )}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Usar a função utilitária para gerar e baixar o Excel
+      gerarRelatorioProducaoExcel(data);
 
       toast.success("Relatório exportado com sucesso!");
     } catch (err) {
@@ -104,7 +141,11 @@ export function VendasRelatorioPage() {
 
   const handleDateChange = useCallback((date: Date | undefined) => {
     if (date) {
-      setSelectedDate(date);
+      // Zerar o horário da data selecionada
+      const dateWithZeroTime = new Date(date);
+      dateWithZeroTime.setHours(0, 0, 0, 0);
+
+      setSelectedDate(dateWithZeroTime);
       setCurrentPage(1);
       setIsDatePickerOpen(false);
     }
@@ -125,42 +166,50 @@ export function VendasRelatorioPage() {
     return `R$ ${Number(value).toFixed(2).replace(".", ",")}`;
   }, []);
 
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }, []);
-
-  // Calcular resumo de produtos para produção
+  // Calcular resumo de produtos para produção usando nova estrutura
   const resumoProdutos = useMemo(() => {
-    const produtos = new Map<string, { nome: string; quantidade: number }>();
+    if (!relatorioData) {
+      // Fallback para estrutura antiga se ainda não temos dados novos
+      const produtos = new Map<
+        string,
+        { nome: string; quantidade: number; categoria?: string }
+      >();
 
-    relatorios.forEach((venda) => {
-      venda.item_venda.forEach((item) => {
-        const key = item.produto.nome;
-        if (produtos.has(key)) {
-          produtos.set(key, {
-            nome: item.produto.nome,
-            quantidade: produtos.get(key)!.quantidade + item.quantidade,
-          });
-        } else {
-          produtos.set(key, {
-            nome: item.produto.nome,
-            quantidade: item.quantidade,
-          });
-        }
+      relatorios.forEach((venda) => {
+        venda.item_venda.forEach((item) => {
+          const key = item.produto.nome;
+          if (produtos.has(key)) {
+            produtos.set(key, {
+              nome: item.produto.nome,
+              quantidade: produtos.get(key)!.quantidade + item.quantidade,
+            });
+          } else {
+            produtos.set(key, {
+              nome: item.produto.nome,
+              quantidade: item.quantidade,
+            });
+          }
+        });
       });
-    });
 
-    return Array.from(produtos.values()).sort(
-      (a, b) => b.quantidade - a.quantidade
-    );
-  }, [relatorios]);
+      return Array.from(produtos.values()).sort(
+        (a, b) => b.quantidade - a.quantidade
+      );
+    }
+    return criarResumoProdutos(relatorioData);
+  }, [relatorios, relatorioData]);
 
-  // Calcular estatísticas
+  // Calcular estatísticas usando nova estrutura ou fallback
   const estatisticas = useMemo(() => {
+    if (relatorioData) {
+      return {
+        totalVendas: relatorioData.resumo.totalVendas,
+        totalClientes: relatorioData.resumo.clientesUnicos,
+        valorTotal: relatorioData.resumo.valorTotal,
+        totalItens: relatorioData.resumo.totalItens,
+      };
+    }
+
     if (!relatorios.length) {
       return {
         totalVendas: 0,
@@ -192,7 +241,7 @@ export function VendasRelatorioPage() {
       valorTotal,
       totalItens,
     };
-  }, [relatorios]);
+  }, [relatorios, relatorioData]);
 
   useEffect(() => {
     loadRelatorios();
@@ -246,7 +295,9 @@ export function VendasRelatorioPage() {
             {/* Export Button */}
             <Button
               onClick={handleExportExcel}
-              disabled={exportingExcel || !relatorios.length}
+              disabled={
+                exportingExcel || (!relatorios.length && !relatorioData)
+              }
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
@@ -311,6 +362,47 @@ export function VendasRelatorioPage() {
             </CardContent>
           </Card>
         </div>
+        {/* Resumo de Produtos para Produção */}
+        {!loading && !error && resumoProdutos.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Resumo de Produção por Produto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {resumoProdutos.map((produto) => (
+                  <div
+                    key={produto.nome}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"
+                  >
+                    <div className="flex-1">
+                      <div
+                        className="font-medium text-sm truncate"
+                        title={produto.nome}
+                      >
+                        {produto.nome}
+                      </div>
+                      {produto.categoria && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {produto.categoria}
+                        </div>
+                      )}
+                    </div>
+                    <Badge
+                      variant="default"
+                      className="ml-2 bg-orange-600 hover:bg-orange-700 text-white font-bold"
+                    >
+                      {produto.quantidade}x
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabela Excel Style */}
         <Card>
@@ -338,7 +430,7 @@ export function VendasRelatorioPage() {
                   </Button>
                 </div>
               </div>
-            ) : relatorios.length === 0 ? (
+            ) : !relatorios.length ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -540,43 +632,6 @@ export function VendasRelatorioPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Resumo de Produtos para Produção */}
-        {!loading && !error && resumoProdutos.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Resumo de Produção por Produto
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {resumoProdutos.map((produto, index) => (
-                  <div
-                    key={produto.nome}
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"
-                  >
-                    <div className="flex-1">
-                      <div
-                        className="font-medium text-sm truncate"
-                        title={produto.nome}
-                      >
-                        {produto.nome}
-                      </div>
-                    </div>
-                    <Badge
-                      variant="default"
-                      className="ml-2 bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                    >
-                      {produto.quantidade}x
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </DefaultLayout>
   );

@@ -1,16 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Heading1, Paragraph } from "@/components/ui/typography";
 import { usePagination } from "@/hooks/use-pagination";
-import { useFilters } from "@/hooks/use-filters";
 import {
   createClienteColumns,
   createClienteActions,
-  clienteFilters,
 } from "@/components/clientes/cliente-columns";
 import type {
   ChangeStatusClienteEntity,
@@ -18,25 +13,33 @@ import type {
   DeleteClienteEntity,
   UpdateClienteEntity,
 } from "@/models/cliente.entity";
+import { ClientesPageHeader } from "@/components/clientes/ClientesPageHeader";
 import { clienteService } from "@/services/cliente.service";
 import { toast } from "react-toastify";
+
+interface ClientesFilters {
+  status: string;
+  nome: string;
+}
 
 const ITEMS_PER_PAGE = 10;
 
 export function ClientesPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clientes, setClientes] = useState<ClienteEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Estado dos filtros
+  const [filters, setFilters] = useState<ClientesFilters>({
+    status: searchParams.get("status") || "todos",
+    nome: searchParams.get("nome") || "",
+  });
+
   const pagination = usePagination({
     itemsPerPage: ITEMS_PER_PAGE,
     totalItems: 0,
-  });
-
-  const filters = useFilters({
-    initialFilters: { status: "todos" },
   });
 
   const handleEdit = useCallback(
@@ -87,6 +90,72 @@ export function ClientesPage() {
     []
   );
 
+  const loadClientes = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Preparar parâmetros de filtro
+      const filterParams: any = {
+        limit: ITEMS_PER_PAGE,
+        offset: (pagination.currentPage - 1) * ITEMS_PER_PAGE,
+      };
+
+      // Adicionar busca por nome
+      if (filters.nome.trim()) {
+        filterParams.nome = filters.nome.trim();
+      }
+
+      console.log("Enviando filtros:", filterParams);
+      const data = await clienteService.getClientes(filterParams);
+      console.log(data);
+
+      // Aplicar filtro de status localmente após receber dados do servidor
+      let filteredClientes = data.clientes;
+
+      if (filters.status === "ativo") {
+        filteredClientes = data.clientes.filter(
+          (cliente) => cliente.ativo === true
+        );
+      } else if (filters.status === "inativo") {
+        filteredClientes = data.clientes.filter(
+          (cliente) => cliente.ativo === false
+        );
+      }
+
+      setClientes(filteredClientes);
+      pagination.updateTotalItems(filteredClientes.length);
+    } catch (err) {
+      console.error("Erro ao carregar clientes:", err);
+      setError("Erro ao carregar clientes. Tente novamente.");
+      toast.error("Erro ao carregar clientes");
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.currentPage, filters, pagination.updateTotalItems]);
+
+  // Função para atualizar filtros
+  const handleFiltersChange = useCallback(
+    (newFilters: ClientesFilters) => {
+      setFilters(newFilters);
+
+      // Atualizar URL com os novos filtros
+      const params = new URLSearchParams();
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value && value !== "todos" && value !== "") {
+          params.set(key, value);
+        }
+      });
+      setSearchParams(params);
+
+      // Reset da paginação quando filtros mudarem
+      if (pagination.currentPage > 1) {
+        pagination.setCurrentPage(1);
+      }
+    },
+    [setSearchParams, pagination]
+  );
+
   // Memoizar colunas e ações
   const columns = useMemo(() => createClienteColumns(), []);
   const actions = useMemo(
@@ -96,7 +165,7 @@ export function ClientesPage() {
 
   useEffect(() => {
     loadClientes();
-  }, [pagination.currentPage, filters.filters]);
+  }, [loadClientes]);
 
   useEffect(() => {
     if (searchParams.get("created") === "true") {
@@ -110,28 +179,6 @@ export function ClientesPage() {
     }
   }, [searchParams, navigate]);
 
-  const loadClientes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const offset = (pagination.currentPage - 1) * ITEMS_PER_PAGE;
-      const data = await clienteService.getClientes({
-        limit: ITEMS_PER_PAGE,
-        offset: offset,
-      });
-      console.log(data);
-      setClientes(data.clientes);
-      pagination.updateTotalItems(data.total);
-    } catch (err) {
-      console.error("Erro ao carregar clientes:", err);
-      setError("Erro ao carregar clientes. Tente novamente.");
-      toast.error("Erro ao carregar clientes");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.currentPage, pagination.updateTotalItems]);
-
   const handleNewClient = useCallback(() => {
     navigate("/clientes/novo");
   }, [navigate]);
@@ -140,40 +187,17 @@ export function ClientesPage() {
     loadClientes();
   }, [loadClientes]);
 
-  // Filtrar clientes localmente baseado nos filtros ativos
-  const filteredClientes = useMemo(() => {
-    return clientes.filter((cliente) => {
-      const statusFilter = filters.getFilterValue("status");
-
-      if (statusFilter === "ativo") {
-        return cliente.ativo === true;
-      }
-      if (statusFilter === "inativo") {
-        return cliente.ativo === false;
-      }
-
-      return true; // "todos"
-    });
-  }, [clientes, filters]);
-
   return (
     <DefaultLayout>
       <div className="w-full">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <Heading1>Clientes</Heading1>
-            <Paragraph className="text-muted-foreground mt-2">
-              Gerencie seus clientes e informações de contato
-            </Paragraph>
-          </div>
-          <Button onClick={handleNewClient} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Cliente
-          </Button>
-        </div>
+        <ClientesPageHeader
+          onNewClient={handleNewClient}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
 
         <DataTable
-          data={filteredClientes}
+          data={clientes}
           columns={columns}
           loading={loading}
           error={error}
@@ -184,14 +208,6 @@ export function ClientesPage() {
             totalItems: pagination.totalItems,
             itemsPerPage: pagination.itemsPerPage,
             onPageChange: pagination.setCurrentPage,
-          }}
-          filters={clienteFilters}
-          onFilterChange={(filterId, value) =>
-            filters.setFilter(filterId, value)
-          }
-          filterValues={filters.filters}
-          search={{
-            placeholder: "Pesquisar por nome...",
           }}
           actions={actions}
           emptyMessage="Nenhum cliente encontrado"

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Plus,
-  ShoppingCart,
   Eye,
   Edit,
   XCircle,
@@ -9,23 +7,17 @@ import {
   DollarSign,
   Package,
   Truck,
-  FileSpreadsheet,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Heading1, Paragraph } from "@/components/ui/typography";
 import { usePagination } from "@/hooks/use-pagination";
-import { useFilters } from "@/hooks/use-filters";
-import {
-  createVendasColumns,
-  vendasFilters,
-} from "@/components/vendas/vendas-columns";
+import { createVendasColumns } from "@/components/vendas/vendas-columns";
 import type { VendasEntity, VendasResponse } from "@/models/vendas.entity";
 import { StatusVenda } from "@/models/vendas.entity";
 import { vendasService } from "@/services/vendas.service";
 import { VendaDetailsModal } from "@/components/vendas/VendaDetailsModal";
+import { VendasPageHeader } from "@/components/vendas/VendasPageHeader";
 import { toast } from "react-toastify";
 import {
   AlertDialog,
@@ -38,11 +30,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface VendasFilters {
+  status: string;
+  data_inicio: string;
+  data_fim: string;
+  cliente_nome: string;
+}
+
 const ITEMS_PER_PAGE = 10;
 
 export function VendasPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [vendas, setVendas] = useState<VendasEntity[]>([]);
   const [estatisticasAPI, setEstatisticasAPI] = useState({
     totalPagas: 0,
@@ -56,6 +55,15 @@ export function VendasPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedVenda, setSelectedVenda] = useState<VendasEntity | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Estado dos filtros
+  const [filters, setFilters] = useState<VendasFilters>({
+    status: searchParams.get("status") || "todos",
+    data_inicio: searchParams.get("data_inicio") || "",
+    data_fim: searchParams.get("data_fim") || "",
+    cliente_nome: searchParams.get("cliente_nome") || "",
+  });
+
   const [confirmAction, setConfirmAction] = useState<{
     isOpen: boolean;
     title: string;
@@ -75,15 +83,6 @@ export function VendasPage() {
   const pagination = usePagination({
     itemsPerPage: ITEMS_PER_PAGE,
     totalItems: 0,
-  });
-
-  const filters = useFilters({
-    initialFilters: {
-      status: "todos",
-      cliente_nome: "",
-      data_inicio: "",
-      data_fim: "",
-    },
   });
 
   const handleView = useCallback((venda: VendasEntity) => {
@@ -112,26 +111,24 @@ export function VendasPage() {
       };
 
       // Adicionar filtros apenas se não forem valores padrão
-      const statusFilter = filters.getFilterValue("status");
-      if (statusFilter && statusFilter !== "todos") {
-        filterParams.status = statusFilter;
+      if (filters.status && filters.status !== "todos") {
+        filterParams.status = filters.status;
       }
 
-      const clienteNome = filters.getFilterValue("cliente_nome");
-      if (clienteNome) {
-        filterParams.cliente_nome = clienteNome;
+      // Adicionar busca por nome do cliente se houver
+      if (filters.cliente_nome.trim()) {
+        filterParams.cliente_nome = filters.cliente_nome.trim();
       }
 
-      const dataInicio = filters.getFilterValue("data_inicio");
-      if (dataInicio) {
-        filterParams.data_inicio = new Date(dataInicio);
+      if (filters.data_inicio) {
+        filterParams.data_inicio = new Date(filters.data_inicio);
       }
 
-      const dataFim = filters.getFilterValue("data_fim");
-      if (dataFim) {
-        filterParams.data_fim = new Date(dataFim);
+      if (filters.data_fim) {
+        filterParams.data_fim = new Date(filters.data_fim);
       }
 
+      console.log("Enviando filtros:", filterParams);
       const data: VendasResponse = await vendasService.getVendas(filterParams);
       console.log(data);
       setVendas(data.vendas || []);
@@ -153,7 +150,7 @@ export function VendasPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.currentPage, filters.filters, pagination.updateTotalItems]);
+  }, [pagination.currentPage, filters, pagination.updateTotalItems]);
 
   const handleUpdateStatus = useCallback(
     async (vendaId: string, novoStatus: StatusVenda) => {
@@ -347,7 +344,7 @@ export function VendasPage() {
 
   useEffect(() => {
     loadVendas();
-  }, [pagination.currentPage, filters.filters]);
+  }, [loadVendas]);
 
   useEffect(() => {
     if (searchParams.get("created") === "true") {
@@ -373,31 +370,29 @@ export function VendasPage() {
     loadVendas();
   }, [loadVendas]);
 
-  // Filtrar vendas localmente baseado nos filtros ativos
-  const filteredVendas = useMemo(() => {
-    return vendas.filter((venda) => {
-      const statusFilter = filters.getFilterValue("status");
-      const clienteNome = filters.getFilterValue("cliente_nome");
+  // Função para atualizar filtros
+  const handleFiltersChange = useCallback(
+    (newFilters: VendasFilters) => {
+      setFilters(newFilters);
 
-      // Filtro por status
-      if (statusFilter && statusFilter !== "todos") {
-        if (venda.status !== statusFilter) {
-          return false;
+      // Atualizar URL com os novos filtros
+      const params = new URLSearchParams();
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value && value !== "todos") {
+          params.set(key, value);
         }
-      }
+      });
+      setSearchParams(params);
 
-      // Filtro por nome do cliente
-      if (clienteNome) {
-        if (
-          !venda.cliente.nome.toLowerCase().includes(clienteNome.toLowerCase())
-        ) {
-          return false;
-        }
+      // Reset da paginação quando filtros mudarem
+      if (pagination.currentPage > 1) {
+        pagination.setCurrentPage(1);
       }
+    },
+    [setSearchParams, pagination]
+  );
 
-      return true;
-    });
-  }, [vendas, filters]);
+  // Os dados já vêm filtrados do servidor, não precisa filtrar localmente
 
   // Calcular estatísticas usando dados da API
   const estatisticas = useMemo(() => {
@@ -420,96 +415,15 @@ export function VendasPage() {
   return (
     <DefaultLayout>
       <div className="w-full">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <Heading1 className="flex items-center gap-2">
-              <ShoppingCart className="h-6 w-6" />
-              Vendas
-            </Heading1>
-            <Paragraph className="text-muted-foreground mt-2">
-              Gerencie todas as vendas realizadas
-            </Paragraph>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRelatorio}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Relatórios
-            </Button>
-            <Button
-              onClick={handleNewVenda}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Nova Venda
-            </Button>
-          </div>
-        </div>
-
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-blue-600">
-              {estatisticas.totalVendas}
-            </div>
-            <div className="text-sm text-muted-foreground">Total de Vendas</div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-yellow-600">
-              {estatisticas.vendasPendentes}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Vendas Pendentes
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-orange-600">
-              {estatisticas.vendasProduzidas}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Vendas Produzidas
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-purple-600">
-              {estatisticas.vendasEntregues}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Vendas Entregues
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-green-600">
-              {estatisticas.vendasPagas}
-            </div>
-            <div className="text-sm text-muted-foreground">Vendas Pagas</div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-red-600">
-              {estatisticas.vendasCanceladas}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Vendas Canceladas
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-indigo-600">
-              R${" "}
-              {Number(estatisticas.totalFaturamento)
-                .toFixed(2)
-                .replace(".", ",")}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Faturamento Total
-            </div>
-          </div>
-        </div>
-
+        <VendasPageHeader
+          onNewVenda={handleNewVenda}
+          onRelatorio={handleRelatorio}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          estatisticas={estatisticas}
+        />
         <DataTable
-          data={filteredVendas}
+          data={vendas}
           columns={columns}
           loading={loading}
           error={error}
@@ -520,15 +434,6 @@ export function VendasPage() {
             totalItems: pagination.totalItems,
             itemsPerPage: pagination.itemsPerPage,
             onPageChange: pagination.setCurrentPage,
-          }}
-          filters={vendasFilters}
-          onFilterChange={(filterId, value) => {
-            filters.setFilter(filterId, value);
-            pagination.reset();
-          }}
-          filterValues={filters.filters}
-          search={{
-            placeholder: "Pesquisar por nome do cliente...",
           }}
           actions={actions}
           emptyMessage="Nenhuma venda encontrada"

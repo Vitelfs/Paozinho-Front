@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Heading1, Paragraph } from "@/components/ui/typography";
 import { usePagination } from "@/hooks/use-pagination";
 import {
   createCategoriaColumns,
@@ -15,17 +12,27 @@ import type {
   UpdateCategoriaEntity,
   DeleteCategoriaEntity,
 } from "@/models/categoria.entity";
+import { CategoriasPageHeader } from "@/components/categorias/CategoriasPageHeader";
 import { toast } from "react-toastify";
 import { categoriaService } from "@/services/categoria.service";
+
+interface CategoriasFilters {
+  nome: string;
+}
 
 const ITEMS_PER_PAGE = 10;
 
 export function CategoriasPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categorias, setCategorias] = useState<CategoriaEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estado dos filtros
+  const [filters, setFilters] = useState<CategoriasFilters>({
+    nome: searchParams.get("nome") || "",
+  });
 
   const pagination = usePagination({
     itemsPerPage: ITEMS_PER_PAGE,
@@ -59,6 +66,60 @@ export function CategoriasPage() {
     [pagination]
   );
 
+  const loadCategorias = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Preparar parâmetros de filtro
+      const filterParams: any = {
+        limit: ITEMS_PER_PAGE,
+        offset: (pagination.currentPage - 1) * ITEMS_PER_PAGE,
+      };
+
+      // Adicionar busca por nome
+      if (filters.nome.trim()) {
+        filterParams.nome = filters.nome.trim();
+      }
+
+      console.log("Enviando filtros:", filterParams);
+      const data = await categoriaService.getCategoriasWithPagination(
+        filterParams
+      );
+
+      setCategorias(data.categorias);
+      pagination.updateTotalItems(data.total);
+    } catch (err) {
+      console.error("Erro ao carregar categorias:", err);
+      setError("Erro ao carregar categorias. Tente novamente.");
+      toast.error("Erro ao carregar categorias");
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.currentPage, filters, pagination.updateTotalItems]);
+
+  // Função para atualizar filtros
+  const handleFiltersChange = useCallback(
+    (newFilters: CategoriasFilters) => {
+      setFilters(newFilters);
+
+      // Atualizar URL com os novos filtros
+      const params = new URLSearchParams();
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value && value !== "") {
+          params.set(key, value);
+        }
+      });
+      setSearchParams(params);
+
+      // Reset da paginação quando filtros mudarem
+      if (pagination.currentPage > 1) {
+        pagination.setCurrentPage(1);
+      }
+    },
+    [setSearchParams, pagination]
+  );
+
   // Memoizar colunas e ações
   const columns = useMemo(() => createCategoriaColumns(), []);
   const actions = useMemo(
@@ -68,7 +129,7 @@ export function CategoriasPage() {
 
   useEffect(() => {
     loadCategorias();
-  }, [pagination.currentPage]);
+  }, [loadCategorias]);
 
   useEffect(() => {
     if (searchParams.get("created") === "true") {
@@ -82,27 +143,6 @@ export function CategoriasPage() {
     }
   }, [searchParams, navigate]);
 
-  const loadCategorias = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await categoriaService.getCategoriasWithPagination({
-        limit: ITEMS_PER_PAGE,
-        offset: (pagination.currentPage - 1) * ITEMS_PER_PAGE,
-      });
-
-      setCategorias(data.categorias);
-      pagination.updateTotalItems(data.total);
-    } catch (err) {
-      console.error("Erro ao carregar categorias:", err);
-      setError("Erro ao carregar categorias. Tente novamente.");
-      toast.error("Erro ao carregar categorias");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.currentPage, pagination.updateTotalItems]);
-
   const handleNewCategory = useCallback(() => {
     navigate("/categorias/novo");
   }, [navigate]);
@@ -114,21 +154,11 @@ export function CategoriasPage() {
   return (
     <DefaultLayout>
       <div className="w-full">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <Heading1>Categorias</Heading1>
-            <Paragraph className="text-muted-foreground mt-2">
-              Gerencie as categorias dos seus produtos
-            </Paragraph>
-          </div>
-          <Button
-            onClick={handleNewCategory}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Categoria
-          </Button>
-        </div>
+        <CategoriasPageHeader
+          onNewCategory={handleNewCategory}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
 
         <DataTable
           data={categorias}
@@ -142,9 +172,6 @@ export function CategoriasPage() {
             totalItems: pagination.totalItems,
             itemsPerPage: pagination.itemsPerPage,
             onPageChange: pagination.setCurrentPage,
-          }}
-          search={{
-            placeholder: "Pesquisar categorias...",
           }}
           actions={actions}
           emptyMessage="Nenhuma categoria encontrada"

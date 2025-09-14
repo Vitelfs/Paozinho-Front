@@ -299,35 +299,7 @@ export function DataTable<T>({
     );
   };
 
-  // Renderizar controles de coluna
-  const renderColumnControls = () => {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="ml-auto">
-            Colunas <ChevronDown className="ml-2 h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {table
-            .getAllColumns()
-            .filter((column) => column.getCanHide())
-            .map((column) => {
-              return (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
+  // Renderizar controles de colun
 
   // Renderizar paginação
   const renderPagination = () => {
@@ -430,7 +402,7 @@ export function DataTable<T>({
   if (error) return renderError();
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`${className}`}>
       {/* Header com controles */}
       {showHeader && (
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -438,7 +410,6 @@ export function DataTable<T>({
             {renderSearch()}
             {renderFilters()}
           </div>
-          <div className="flex gap-2">{renderColumnControls()}</div>
         </div>
       )}
 
