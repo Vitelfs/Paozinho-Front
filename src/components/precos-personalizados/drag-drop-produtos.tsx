@@ -70,31 +70,35 @@ interface ProdutoItemProps {
   cliente: clientesPrecosPersonalizados;
   onUpdate: () => void;
   loadProdutosSemPreco: () => Promise<void>;
-  loadPrecosPersonalizados: () => Promise<void>;
 }
 
 interface PrecoPersonalizadoItemProps {
   precoPersonalizado: precoPersonalizado;
   isDragOverlay?: boolean;
   onUpdate: () => void;
-  loadProdutosSemPreco: () => Promise<void>;
-  loadPrecosPersonalizados: () => Promise<void>;
 }
 
-// Componente Droppable para área de preços personalizados
-function DroppableArea({ children }: { children: React.ReactNode }) {
+// Área dedicada de drop para adicionar produtos aos preços personalizados
+function DropTargetArea() {
   const { isOver, setNodeRef } = useDroppable({
-    id: "precos-personalizados",
+    id: "precos-personalizados-dropzone",
   });
 
   return (
     <div
       ref={setNodeRef}
-      className={`space-y-2 min-h-[200px] transition-colors ${
-        isOver ? "bg-green-50 dark:bg-green-900/20" : ""
+      className={`mb-3 rounded-lg border-2 border-dashed transition-colors p-4 text-center ${
+        isOver
+          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+          : "border-gray-300 dark:border-gray-600"
       }`}
     >
-      {children}
+      <div className="flex flex-col items-center gap-1">
+        <Plus className="h-5 w-5" />
+        <p className="text-xs text-muted-foreground">
+          Arraste produtos aqui para criar preços personalizados
+        </p>
+      </div>
     </div>
   );
 }
@@ -124,7 +128,6 @@ function ProdutoItem({
   cliente,
   onUpdate,
   loadProdutosSemPreco,
-  loadPrecosPersonalizados,
 }: ProdutoItemProps) {
   const {
     attributes,
@@ -143,14 +146,16 @@ function ProdutoItem({
 
   const handleAddToPersonalized = async () => {
     try {
+      const precoVendaNumerico = Number(produto.preco_minimo_venda);
+      const precoRevendaNumerico = Number(produto.preco_revenda);
       // Validação com Zod
       const validationResult = createPrecoPersonalizadoSchema.safeParse({
         cliente_id: cliente.id,
         precoPersonalizado: [
           {
             produto_id: produto.id,
-            preco_revenda: produto.preco_revenda,
-            preco_venda: produto.preco_minimo_venda,
+            preco_revenda: precoRevendaNumerico,
+            preco_venda: precoVendaNumerico,
           },
         ],
       });
@@ -158,6 +163,7 @@ function ProdutoItem({
       if (!validationResult.success) {
         // Mostrar primeiro erro encontrado
         const firstError = validationResult.error.issues[0];
+        console.log(firstError);
         toast.error(firstError.message);
         return;
       }
@@ -167,15 +173,14 @@ function ProdutoItem({
         precoPersonalizado: [
           {
             produto_id: produto.id,
-            preco_revenda: produto.preco_revenda,
-            preco_venda: produto.preco_minimo_venda,
+            preco_revenda: precoRevendaNumerico,
+            preco_venda: precoVendaNumerico,
           },
         ],
       });
-      toast.success("Produto adicionado aos preços personalizados");
-      // Recarregar dados
-      await Promise.all([loadProdutosSemPreco(), loadPrecosPersonalizados()]);
+      // Solicitar atualização ao pai e atualizar lista de produtos imediatamente
       onUpdate();
+      await loadProdutosSemPreco();
     } catch (error) {
       console.error("Erro ao adicionar produto:", error);
       toast.error("Erro ao adicionar produto");
@@ -232,8 +237,6 @@ function PrecoPersonalizadoItem({
   precoPersonalizado,
   isDragOverlay = false,
   onUpdate,
-  loadProdutosSemPreco,
-  loadPrecosPersonalizados,
 }: PrecoPersonalizadoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [precoVenda, setPrecoVenda] = useState(
@@ -286,8 +289,6 @@ function PrecoPersonalizadoItem({
       );
 
       setIsEditing(false);
-      toast.success("Preços atualizados com sucesso");
-      await Promise.all([loadProdutosSemPreco(), loadPrecosPersonalizados()]);
       onUpdate();
     } catch (error) {
       console.error("Erro ao atualizar preços:", error);
@@ -300,8 +301,6 @@ function PrecoPersonalizadoItem({
       await precosPersonalizadosService.deletePrecoPersonalizado(
         precoPersonalizado.id
       );
-      toast.success("Preço personalizado removido");
-      await Promise.all([loadProdutosSemPreco(), loadPrecosPersonalizados()]);
       onUpdate();
     } catch (error) {
       console.error("Erro ao remover preço:", error);
@@ -609,6 +608,15 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
     loadData();
   }, []); // Apenas no mount inicial
 
+  // Sincronizar quando o cliente ou seus preços mudarem a partir do pai
+  useEffect(() => {
+    const sync = async () => {
+      await Promise.all([loadProdutosSemPreco(), loadPrecosPersonalizados()]);
+    };
+    sync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cliente.id, cliente.precoPersonalizado]);
+
   // Recarregar quando valores mudarem
   useEffect(() => {
     loadProdutosSemPreco();
@@ -679,33 +687,48 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
     // Se arrastando produto sem preço para área de preços personalizados
     if (
       produtosSemPreco.some((p) => p.id === activeId) &&
-      overId === "precos-personalizados"
+      (overId === "precos-personalizados" ||
+        overId === "precos-personalizados-dropzone")
     ) {
       const produto = produtosSemPreco.find((p) => p.id === activeId);
       if (produto) {
         // Criar novo preço personalizado
         try {
+          const precoVendaNumerico = Number(produto.preco_minimo_venda);
+          const precoRevendaNumerico = Number(produto.preco_revenda);
+
+          // Validar com Zod antes de enviar
+          const validationResult = createPrecoPersonalizadoSchema.safeParse({
+            cliente_id: cliente.id,
+            precoPersonalizado: [
+              {
+                produto_id: produto.id,
+                preco_venda: precoVendaNumerico,
+                preco_revenda: precoRevendaNumerico,
+              },
+            ],
+          });
+
+          if (!validationResult.success) {
+            const firstError = validationResult.error.issues[0];
+            toast.error(firstError.message);
+            return;
+          }
+
           await precosPersonalizadosService.createPrecoPersonalizado({
             cliente_id: cliente.id,
             precoPersonalizado: [
               {
                 produto_id: produto.id,
-                preco_venda: produto.preco_minimo_venda,
-                preco_revenda: produto.preco_revenda,
+                preco_venda: precoVendaNumerico,
+                preco_revenda: precoRevendaNumerico,
               },
             ],
           });
 
-          // Remover produto da lista sem preço
+          // Remover produto da lista sem preço (otimista) e solicitar sync
           setProdutosSemPreco((prev) => prev.filter((p) => p.id !== activeId));
-          toast.success("Produto adicionado aos preços personalizados");
           onUpdate();
-
-          // Recarregar listas após operação
-          await Promise.all([
-            loadProdutosSemPreco(),
-            loadPrecosPersonalizados(),
-          ]);
         } catch (error) {
           console.error("Erro ao criar preço personalizado:", error);
           toast.error("Erro ao adicionar produto");
@@ -727,35 +750,8 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
             precoPersonalizado.id
           );
 
-          // Remover da lista de preços personalizados
-          setPrecosPersonalizados((prev) =>
-            prev.filter((p) => p.id !== activeId)
-          );
-
-          // Adicionar produto de volta à lista de produtos disponíveis
-          const produtoOriginal = {
-            id: precoPersonalizado.produto.id,
-            nome: precoPersonalizado.produto.nome,
-            descricao: precoPersonalizado.produto.descricao,
-            preco_custo: 0, // Valores padrão, serão atualizados quando recarregar
-            preco_minimo_venda: precoPersonalizado.preco_venda,
-            preco_revenda: precoPersonalizado.preco_revenda,
-            margem_lucro: 0,
-            margem_lucro_cliente: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            categoria_id: precoPersonalizado.produto.categoria.id,
-          };
-
-          setProdutosSemPreco((prev) => [...prev, produtoOriginal]);
-          toast.success("Preço personalizado removido");
+          // Manter simples: notificar e sincronizar via pai
           onUpdate();
-
-          // Recarregar listas após operação
-          await Promise.all([
-            loadProdutosSemPreco(),
-            loadPrecosPersonalizados(),
-          ]);
         } catch (error) {
           console.error("Erro ao remover preço personalizado:", error);
           toast.error("Erro ao remover preço personalizado");
@@ -839,7 +835,6 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
                         cliente={cliente}
                         onUpdate={onUpdate}
                         loadProdutosSemPreco={loadProdutosSemPreco}
-                        loadPrecosPersonalizados={loadPrecosPersonalizados}
                       />
                     ))
                   )}
@@ -862,38 +857,31 @@ export function DragDropProdutos({ cliente, onUpdate }: DragDropProdutosProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <DropTargetArea />
               <SortableContext
                 id="precos-personalizados"
                 items={precosPersonalizados.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <DroppableArea>
-                  {precosLoading ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <DollarSign className="h-8 w-8 mx-auto mb-2 animate-pulse" />
-                      <p className="text-sm">Carregando preços...</p>
-                    </div>
-                  ) : precosPersonalizados.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                      <Plus className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-sm">
-                        {searchTerm
-                          ? "Nenhum preço encontrado"
-                          : "Arraste produtos aqui para criar preços personalizados"}
-                      </p>
-                    </div>
-                  ) : (
-                    precosPersonalizados.map((precoPersonalizado) => (
+                {precosLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <DollarSign className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                    <p className="text-sm">Carregando preços...</p>
+                  </div>
+                ) : precosPersonalizados.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">Nenhum preço personalizado</p>
+                  </div>
+                ) : (
+                  precosPersonalizados.map((precoPersonalizado) => (
+                    <div key={precoPersonalizado.id} className="mb-2 last:mb-0">
                       <PrecoPersonalizadoItem
-                        key={precoPersonalizado.id}
                         precoPersonalizado={precoPersonalizado}
                         onUpdate={onUpdate}
-                        loadProdutosSemPreco={loadProdutosSemPreco}
-                        loadPrecosPersonalizados={loadPrecosPersonalizados}
                       />
-                    ))
-                  )}
-                </DroppableArea>
+                    </div>
+                  ))
+                )}
               </SortableContext>
               <PaginationControls
                 pagination={precosPagination}

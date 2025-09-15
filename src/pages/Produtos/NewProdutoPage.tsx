@@ -37,7 +37,7 @@ import {
   type ProdutoBackendData,
 } from "../../schemas/produto.schema";
 import { toast } from "react-toastify";
-import { calculateMarkup } from "@/utils/dataFormater";
+import { calculateMargemLucro } from "@/utils/dataFormater";
 import { produtoService } from "@/services/produto.service";
 import { categoriaService } from "@/services/categoria.service";
 import type { CategoriaEntity } from "@/models/categoria.entity";
@@ -137,8 +137,9 @@ export function NewProdutoPage() {
           : form.getValues("preco_minimo_venda");
 
       if (precoCusto > 0 && precoVenda > 0) {
-        const margem = calculateMarkup(precoCusto, precoVenda);
-        form.setValue("margem_lucro", Math.round(margem * 100) / 100);
+        const margem = calculateMargemLucro(precoCusto, precoVenda);
+        form.setValue("margem_lucro", margem);
+        setMargemLucroValue(margem.toFixed(2).replace(".", ","));
       }
     }
 
@@ -154,11 +155,12 @@ export function NewProdutoPage() {
           : form.getValues("preco_revenda");
 
       if (precoMinimoVenda > 0 && precoRevenda > 0) {
-        const margemCliente = calculateMarkup(precoMinimoVenda, precoRevenda);
-        form.setValue(
-          "margem_lucro_cliente",
-          Math.round(margemCliente * 100) / 100
+        const margemCliente = calculateMargemLucro(
+          precoMinimoVenda,
+          precoRevenda
         );
+        form.setValue("margem_lucro_cliente", margemCliente);
+        setMargemLucroClienteValue(margemCliente.toFixed(2).replace(".", ","));
       }
     }
   };
@@ -179,11 +181,21 @@ export function NewProdutoPage() {
     // Recalcular preço de venda baseado na margem
     const precoCusto = form.getValues("preco_custo");
     if (precoCusto > 0 && numericValue >= 0) {
-      const novoPrecoVenda = precoCusto * (1 + numericValue / 100);
-      form.setValue(
-        "preco_minimo_venda",
-        Math.round(novoPrecoVenda * 100) / 100
-      );
+      // Fórmula inversa da calculateMargemLucro: precoVenda = precoCusto / (1 - margem/100)
+      const novoPrecoVenda = precoCusto / (1 - numericValue / 100);
+      const precoVendaArredondado = Math.round(novoPrecoVenda * 100) / 100;
+      form.setValue("preco_minimo_venda", precoVendaArredondado);
+
+      // Recalcular margem do cliente se necessário
+      const precoRevenda = form.getValues("preco_revenda");
+      if (precoRevenda > 0) {
+        const margemCliente = calculateMargemLucro(
+          precoVendaArredondado,
+          precoRevenda
+        );
+        form.setValue("margem_lucro_cliente", margemCliente);
+        setMargemLucroClienteValue(margemCliente.toFixed(2).replace(".", ","));
+      }
     }
   };
 
@@ -203,8 +215,10 @@ export function NewProdutoPage() {
     // Recalcular preço de revenda baseado na margem do cliente
     const precoMinimoVenda = form.getValues("preco_minimo_venda");
     if (precoMinimoVenda > 0 && numericValue >= 0) {
-      const novoPrecoRevenda = precoMinimoVenda * (1 + numericValue / 100);
-      form.setValue("preco_revenda", Math.round(novoPrecoRevenda * 100) / 100);
+      // Fórmula inversa da calculateMargemLucro: precoRevenda = precoMinimoVenda / (1 - margem/100)
+      const novoPrecoRevenda = precoMinimoVenda / (1 - numericValue / 100);
+      const precoRevendaArredondado = Math.round(novoPrecoRevenda * 100) / 100;
+      form.setValue("preco_revenda", precoRevendaArredondado);
     }
   };
 
