@@ -45,6 +45,7 @@ export function VendasPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [vendas, setVendas] = useState<VendasEntity[]>([]);
   const [estatisticasAPI, setEstatisticasAPI] = useState({
+    totalVendas: 0,
     totalPagas: 0,
     totalPendentes: 0,
     totalCanceladas: 0,
@@ -136,10 +137,12 @@ export function VendasPage() {
       }
 
       const data: VendasResponse = await vendasService.getVendas(filterParams);
+      console.log("data", data);
       setVendas(data.vendas || []);
-      pagination.updateTotalItems(data.total || 0);
+      pagination.updateTotalItems(data.totalVendas || 0);
 
       setEstatisticasAPI({
+        totalVendas: data.totalVendas || 0,
         totalPagas: data.totalPagas || 0,
         totalPendentes: data.totalPendentes || 0,
         totalCanceladas: data.totalCanceladas || 0,
@@ -504,13 +507,12 @@ export function VendasPage() {
   );
 
   const estatisticas = useMemo(() => {
-    const totalVendas = vendas.length;
     const vendasProduzidas = vendas.filter(
       (v) => v.status === StatusVenda.PRODUZIDO
     ).length;
-
+    console.log("estatisticasAPI", estatisticasAPI);
     return {
-      totalVendas,
+      totalVendas: estatisticasAPI.totalVendas,
       vendasPagas: estatisticasAPI.totalPagas,
       vendasPendentes: estatisticasAPI.totalPendentes,
       vendasProduzidas,

@@ -40,7 +40,7 @@ export interface CreateItemVendasEntity {
 
 export interface VendasResponse {
   vendas: VendasEntity[];
-  total: number;
+  totalVendas: number;
   totalPagas: number;
   totalPendentes: number;
   totalCanceladas: number;
