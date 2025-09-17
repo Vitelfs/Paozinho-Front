@@ -25,4 +25,5 @@ export interface VendasPagination extends Pagination {
 
 export interface RelatorioVendasPagination extends Pagination {
   data_venda: Date;
+  status?: string;
 }

@@ -39,7 +39,7 @@ type RelatorioVenda = {
   id: string;
   cliente_id: string;
   total: string;
-  status: "PENDENTE";
+  status: StatusVenda;
   observacoes: string | null;
   data_venda: string;
   createdAt: string;
@@ -63,6 +63,14 @@ type RelatorioVenda = {
   }>;
 };
 import { cn } from "@/lib/utils";
+import { StatusVenda } from "@/models/vendas.entity";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -81,6 +89,7 @@ export function VendasRelatorioPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [status, setStatus] = useState<StatusVenda>("PENDENTE");
 
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
@@ -96,6 +105,7 @@ export function VendasRelatorioPage() {
         data_venda: selectedDate,
         limit: ITEMS_PER_PAGE,
         offset: offset,
+        status: status,
       });
 
       setRelatorios(data.vendas || []);
@@ -104,7 +114,8 @@ export function VendasRelatorioPage() {
       // Carregar dados novos para estatísticas e resumo
       try {
         const relatorioCompleto = await vendasService.getRelatorioVendasExcel(
-          selectedDate
+          selectedDate,
+          status
         );
         setRelatorioData(relatorioCompleto);
       } catch (err) {
@@ -119,13 +130,16 @@ export function VendasRelatorioPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, currentPage]);
+  }, [selectedDate, currentPage, status]);
 
   const handleExportExcel = useCallback(async () => {
     try {
       setExportingExcel(true);
 
-      const data = await vendasService.getRelatorioVendasExcel(selectedDate);
+      const data = await vendasService.getRelatorioVendasExcel(
+        selectedDate,
+        status
+      );
 
       // Usar a função utilitária para gerar e baixar o Excel
       gerarRelatorioProducaoExcel(data);
@@ -137,7 +151,7 @@ export function VendasRelatorioPage() {
     } finally {
       setExportingExcel(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, status]);
 
   const handleDateChange = useCallback((date: Date | undefined) => {
     if (date) {
@@ -291,6 +305,24 @@ export function VendasRelatorioPage() {
                 />
               </PopoverContent>
             </Popover>
+
+            {/* Status */}
+
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as StatusVenda)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={StatusVenda.PENDENTE}>Pendente</SelectItem>
+                <SelectItem value={StatusVenda.PRODUZIDO}>Produzido</SelectItem>
+                <SelectItem value={StatusVenda.ENTREGUE}>Entregue</SelectItem>
+                <SelectItem value={StatusVenda.PAGO}>Pago</SelectItem>
+                <SelectItem value={StatusVenda.CANCELADO}>Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Export Button */}
             <Button

@@ -39,9 +39,9 @@ export const vendasService = {
     console.log("response", response.data);
     return response.data;
   },
-  getRelatorioVendasExcel: async (data_venda: Date) => {
+  getRelatorioVendasExcel: async (data_venda: Date, status: StatusVenda) => {
     const response = await request.get("/vendas/relatorio/producao/dados", {
-      params: { data_venda },
+      params: { data_venda, status },
     });
     return response.data;
   },

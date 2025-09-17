@@ -6,7 +6,13 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   Calendar,
@@ -199,6 +205,16 @@ export function VendaDetailsModal({
                 <Package className="h-4 w-4" />
                 Produtos ({venda.item_venda.length})
               </CardTitle>
+              <CardDescription>
+                {venda.item_venda.map((item) => item.produto.nome).join(", ")} -
+                Total de bolos vendidos:{" "}
+                <span className="bg-dark-500 text-card-foreground px-2 py-1 rounded-md">
+                  {venda.item_venda.reduce(
+                    (acc, item) => acc + item.quantidade,
+                    0
+                  )}
+                </span>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
