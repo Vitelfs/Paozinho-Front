@@ -38,13 +38,14 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import {
-  Area,
-  AreaChart,
   Cell,
   Pie,
   PieChart as RechartsPieChart,
   XAxis,
   YAxis,
+  Line,
+  LineChart,
+  CartesianGrid,
 } from "recharts";
 
 import {
@@ -60,7 +61,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // Configuração de cores para os gráficos
 const chartConfig = {
   vendas: {
-    label: "Vendas",
+    label: "Qnt. vendida",
     color: "#3b82f6", // azul mais vibrante
   },
   faturamento: {
@@ -93,6 +94,9 @@ const COLORS = ["#fbbf24", "#3b82f6", "#8b5cf6", "#10b981", "#ef4444"];
 
 // Componente reutilizável para listar produtos
 interface ProdutosListProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
   data: {
     produto: string;
     quantidade: number;
@@ -102,9 +106,22 @@ interface ProdutosListProps {
   loading: boolean;
 }
 
-function ProdutosList({ data, loading }: ProdutosListProps) {
+function ProdutosList({
+  data,
+  loading,
+  title,
+  description,
+  icon,
+}: ProdutosListProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <div>
+          <h4 className="font-semibold text-sm">{title}</h4>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 10 }).map((_, i) => (
@@ -119,9 +136,21 @@ function ProdutosList({ data, loading }: ProdutosListProps) {
                 key={produto.produto}
                 className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
               >
-                {/* Ranking */}
+                {/* Ranking com ícone especial para top 3 */}
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-medium">
-                  {index + 1}
+                  {index < 3 ? (
+                    <Award
+                      className={`h-4 w-4 ${
+                        index === 0
+                          ? "text-yellow-500"
+                          : index === 1
+                          ? "text-gray-500"
+                          : "text-amber-600"
+                      }`}
+                    />
+                  ) : (
+                    index + 1
+                  )}
                 </div>
 
                 {/* Informações do produto */}
@@ -168,6 +197,9 @@ function ProdutosList({ data, loading }: ProdutosListProps) {
 
 // Componente reutilizável para listar status
 interface StatusListProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
   data: {
     status: StatusVenda;
     count: number;
@@ -176,9 +208,22 @@ interface StatusListProps {
   loading: boolean;
 }
 
-function StatusList({ data, loading }: StatusListProps) {
+function StatusList({
+  data,
+  loading,
+  title,
+  description,
+  icon,
+}: StatusListProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <div>
+          <h4 className="font-semibold text-sm">{title}</h4>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -297,7 +342,19 @@ function ClientesList({
               >
                 {/* Ranking com ícone especial para top 3 */}
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-medium">
-                  {index < 3 ? <Award className="h-4 w-4" /> : index + 1}
+                  {index < 3 ? (
+                    <Award
+                      className={`h-4 w-4 ${
+                        index === 0
+                          ? "text-yellow-500"
+                          : index === 1
+                          ? "text-gray-500"
+                          : "text-amber-600"
+                      }`}
+                    />
+                  ) : (
+                    index + 1
+                  )}
                 </div>
 
                 {/* Informações do cliente */}
@@ -731,9 +788,9 @@ export function DashboardPage() {
           {/* Gráfico de Vendas por Dia */}
           <Card>
             <CardHeader>
-              <CardTitle>Vendas por Dia</CardTitle>
+              <CardTitle>Vendas e Faturamento por Dia</CardTitle>
               <Paragraph className="text-sm text-muted-foreground">
-                Acompanhe o desempenho diário das suas vendas
+                Acompanhe a quantidade de vendas e o faturamento diário
               </Paragraph>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
@@ -744,32 +801,16 @@ export function DashboardPage() {
                   config={chartConfig}
                   className="h-[250px] sm:h-[300px] w-full"
                 >
-                  <AreaChart
+                  <LineChart
                     data={vendasPorDia}
                     width={525}
                     height={300}
                     margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
                   >
-                    <defs>
-                      <linearGradient
-                        id="fillVendas"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.05}
-                        />
-                      </linearGradient>
-                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis
                       dataKey="data"
                       axisLine={false}
@@ -778,26 +819,89 @@ export function DashboardPage() {
                       tickMargin={10}
                     />
                     <YAxis
+                      yAxisId="left"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12 }}
                       width={30}
                       domain={[0, "dataMax + 1"]}
                     />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12 }}
+                      width={50}
+                      domain={[0, "dataMax + 100"]}
+                      tickFormatter={(value) => `R$ ${value.toLocaleString()}`}
+                    />
                     <ChartTooltip
                       cursor={false}
-                      content={<ChartTooltipContent indicator="line" />}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded-lg border bg-background p-3 shadow-md">
+                              <div className="text-sm font-medium text-foreground mb-2">
+                                {label}
+                              </div>
+                              <div className="space-y-1">
+                                {payload.map((entry, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <div
+                                      className="h-2 w-2 rounded-full"
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                      {entry.dataKey === "vendas"
+                                        ? "Qnt. vendida"
+                                        : "Faturamento"}
+                                      :
+                                    </span>
+                                    <span className="text-xs font-medium">
+                                      {entry.dataKey === "vendas"
+                                        ? `${entry.value} vendas`
+                                        : `R$ ${Number(
+                                            entry.value
+                                          ).toLocaleString("pt-BR", {
+                                            minimumFractionDigits: 2,
+                                          })}`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
-                    <Area
+                    <ChartLegend
+                      content={<ChartLegendContent />}
+                      wrapperStyle={{ fontSize: "12px" }}
+                    />
+                    <Line
+                      yAxisId="left"
                       dataKey="vendas"
                       type="monotone"
-                      fill="url(#fillVendas)"
-                      fillOpacity={0.6}
                       stroke="#3b82f6"
                       strokeWidth={2}
+                      dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
                       connectNulls={false}
                     />
-                  </AreaChart>
+                    <Line
+                      yAxisId="right"
+                      dataKey="faturamento"
+                      type="monotone"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                      connectNulls={false}
+                    />
+                  </LineChart>
                 </ChartContainer>
               )}
             </CardContent>
@@ -883,11 +987,20 @@ export function DashboardPage() {
                   <ProdutosList
                     data={produtosMaisVendidos || []}
                     loading={loading}
+                    title="Produtos mais vendidos"
+                    description="Produtos mais vendidos no período"
+                    icon={<Crown className="h-4 w-4 text-yellow-500" />}
                   />
                 </TabsContent>
 
                 <TabsContent value="status" className="mt-4">
-                  <StatusList data={vendasPorStatus} loading={loading} />
+                  <StatusList
+                    data={vendasPorStatus}
+                    loading={loading}
+                    title="Status das Vendas"
+                    description="Distribuição das vendas por status atual"
+                    icon={<BarChart3 className="h-4 w-4" />}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>

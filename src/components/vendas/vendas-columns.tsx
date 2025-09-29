@@ -127,15 +127,14 @@ export const createVendasColumns = (): DataTableColumn<VendasEntity>[] => [
     },
   },
   {
-    id: "observacoes",
-    header: "Observações",
-    accessorKey: "observacoes",
+    id: "quantidade_vendida",
+    header: "Quantidade vendida",
     enableSorting: false,
     cell: ({ row }: { row: { original: VendasEntity } }) => {
-      const observacoes = row.original.observacoes;
+      const quantidadeVendida = row.original.item_venda.reduce((acc, item) => acc + item.quantidade, 0);
       return (
         <div className="max-w-[200px] truncate text-sm text-muted-foreground">
-          {observacoes || "Sem observações"}
+          {`${quantidadeVendida} bolo(s)` || "Sem quantidade vendida"}
         </div>
       );
     },

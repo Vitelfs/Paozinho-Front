@@ -22,10 +22,10 @@ import {
   Clock,
   Phone,
   CreditCard,
-  DollarSign,
 } from "lucide-react";
 import { StatusVenda } from "@/models/vendas.entity";
 import type { VendasEntity } from "@/models/vendas.entity";
+import { phoneFormat } from "@/utils/dataFormater";
 
 interface VendaDetailsModalProps {
   venda: VendasEntity | null;
@@ -126,77 +126,99 @@ export function VendaDetailsModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Informações do Cliente */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-4 w-4" />
-                Informações do Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Nome
-                  </label>
-                  <p className="text-sm font-medium">{venda.cliente.nome}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Contato
-                  </label>
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {venda.cliente.contato}
-                  </p>
+          {/* Informações Principais */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Cliente */}
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Cliente</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{venda.cliente.nome}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-foreground">
+                      Contato
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {phoneFormat(venda.cliente.contato)}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          {/* Informações da Venda */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Calendar className="h-4 w-4" />
-                Informações da Venda
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Data da Venda
-                  </label>
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {formatDate(venda.data_venda)}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Criado em
-                  </label>
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDate(venda.createdAt)}
-                  </p>
-                </div>
+            {/* Venda */}
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Venda</h3>
               </div>
-              {venda.observacoes && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Observações
-                  </label>
-                  <p className="text-sm font-medium flex items-start gap-1">
-                    <FileText className="h-3 w-3 mt-0.5" />
-                    {venda.observacoes}
-                  </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Data da Venda</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-foreground">
+                      Processado em
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDate(venda.createdAt)}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {venda.observacoes && (
+                  <div className="p-2 bg-muted/30 rounded-md">
+                    <p className="text-xs text-muted-foreground flex items-start gap-1">
+                      <FileText className="h-3 w-3 mt-0.5" />
+                      {venda.observacoes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Pagamentos */}
+            {venda.pagamentos && venda.pagamentos.length > 0 && (
+              <Card className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-sm">Pagamento</h3>
+                </div>
+                <div className="space-y-2">
+                  {venda.pagamentos.map((pagamento, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-muted/50 rounded-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">
+                          {getFormaIcon(pagamento.forma)}
+                        </span>
+                        <span className="text-sm font-medium">
+                          {pagamento.forma}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-green-600">
+                          {formatCurrency(pagamento.valor)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(pagamento.data_pagamento)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </div>
 
           {/* Produtos da Venda */}
           <Card>
@@ -360,65 +382,6 @@ export function VendaDetailsModal({
               </div>
             </CardContent>
           </Card>
-
-          {/* Formas de Pagamento */}
-          {venda.pagamentos && venda.pagamentos.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <CreditCard className="h-4 w-4" />
-                  Formas de Pagamento ({venda.pagamentos.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {venda.pagamentos.map((pagamento, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/30 dark:border-green-800"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">
-                            {getFormaIcon(pagamento.forma)}
-                          </span>
-                          <span className="font-medium text-sm">
-                            {pagamento.forma}
-                          </span>
-                        </div>
-                        <Badge
-                          variant="default"
-                          className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-                        >
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          {formatCurrency(pagamento.valor)}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Processado em: {formatDate(pagamento.data_pagamento)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Pago:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {formatCurrency(
-                      venda.pagamentos
-                        .reduce((sum, p) => sum + Number(p.valor), 0)
-                        .toString()
-                    )}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         <div className="flex justify-end pt-4">
