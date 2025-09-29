@@ -17,6 +17,68 @@ export interface DashboardMetrics {
   totalProdutosVendidos: MetricaComTendencia;
   totalClientes: MetricaComTendencia;
   totalProdutos: MetricaComTendencia;
+  // Métricas de Performance
+  ticketMedio: MetricaComTendencia;
+  vendasPorCliente: MetricaComTendencia;
+  produtosPorVenda: MetricaComTendencia;
+  taxaCancelamento: MetricaComTendencia;
+
+  // Análise de Sazonalidade
+  crescimentoMensal: MetricaComTendencia;
+  tendenciasSazonais: {
+    mes: string;
+    vendas: number;
+    faturamento: number;
+    crescimento: number;
+    tendencia: "alta" | "baixa" | "estavel";
+  }[];
+  previsaoDemanda: {
+    proximoMes: {
+      vendasPrevistas: number;
+      faturamentoPrevisto: number;
+      confianca: number;
+    };
+    tendenciaGeral: "crescimento" | "queda" | "estavel";
+    fatoresInfluencia: string[];
+  };
+
+  // Métricas de Qualidade
+  taxaSatisfacao: MetricaComTendencia;
+  produtosMaisDevolvidos: {
+    produto: string;
+    totalDevolvido: number;
+    percentualDevolucao: number;
+    valorPerdido: number;
+    motivoPrincipal: string;
+  }[];
+  motivosCancelamento: {
+    motivo: string;
+    quantidade: number;
+    percentual: number;
+    valorPerdido: number;
+    tendencia: "crescimento" | "queda" | "estavel";
+  }[];
+
+  // Métricas de Cliente Avançadas
+  lifetimeValue: MetricaComTendencia;
+  frequenciaCompra: MetricaComTendencia;
+  analiseCoorte: {
+    mes: string;
+    clientesNovos: number;
+    clientesRetidos: number;
+    taxaRetencao: number;
+    ltvMedio: number;
+  }[];
+  clientesPorLTV: {
+    cliente: string;
+    ltv: number;
+    totalCompras: number;
+    primeiraCompra: string;
+    ultimaCompra: string;
+    frequenciaCompra: number;
+    ticketMedio: number;
+  }[];
+
   vendasPorStatus: {
     status: StatusVenda;
     count: number;
@@ -124,6 +186,87 @@ export const dashboardService = {
           percentualMudanca: 0,
           tendencia: "estavel" as const,
         },
+        // Métricas de Performance (fallback com valores calculados)
+        ticketMedio: {
+          atual:
+            vendas?.totalFaturamento && vendas?.total
+              ? vendas.totalFaturamento / vendas.total
+              : 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        vendasPorCliente: {
+          atual:
+            vendas?.total && clientes?.total
+              ? vendas.total / clientes.total
+              : 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        produtosPorVenda: {
+          atual:
+            vendas?.totalProdutosVendidos && vendas?.total
+              ? vendas.totalProdutosVendidos / vendas.total
+              : 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        taxaCancelamento: {
+          atual:
+            vendas?.totalCanceladas && vendas?.total
+              ? (vendas.totalCanceladas / vendas.total) * 100
+              : 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+
+        // Análise de Sazonalidade (fallback)
+        crescimentoMensal: {
+          atual: 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        tendenciasSazonais: [],
+        previsaoDemanda: {
+          proximoMes: {
+            vendasPrevistas: 0,
+            faturamentoPrevisto: 0,
+            confianca: 0,
+          },
+          tendenciaGeral: "estavel" as const,
+          fatoresInfluencia: ["Dados insuficientes para análise"],
+        },
+
+        // Métricas de Qualidade (fallback)
+        taxaSatisfacao: {
+          atual: 95, // Simulado
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        produtosMaisDevolvidos: [],
+        motivosCancelamento: [],
+
+        // Métricas de Cliente Avançadas (fallback)
+        lifetimeValue: {
+          atual: 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        frequenciaCompra: {
+          atual: 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        analiseCoorte: [],
+        clientesPorLTV: [],
         vendasPorStatus: vendas
           ? [
               {
