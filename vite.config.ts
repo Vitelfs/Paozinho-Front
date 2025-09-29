@@ -11,4 +11,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    port: 5175, // coloque a porta desejada aqui
+    host: '0.0.0.0', // permite acessar de qualquer IP
+    strictPort: true, // falha se a porta estiver em uso
+    allowedHosts: [
+      'paozinhodelicia.humannits.com.br',
+      'localhost',
+      '127.0.0.1',
+      '172.17.0.1'
+    ]
+  },
 });

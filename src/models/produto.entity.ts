@@ -8,6 +8,8 @@ export interface ProdutoEntity {
   preco_custo: number;
   preco_minimo_venda: number;
   preco_revenda: number;
+  validade: boolean;
+  validade_dias: number;
 }
 
 export interface CreateProdutoEntity {
@@ -17,6 +19,8 @@ export interface CreateProdutoEntity {
   preco_custo: number;
   preco_minimo_venda: number;
   preco_revenda: number;
+  validade: boolean;
+  validade_dias: number;
 }
 
 export interface UpdateProdutoEntity {
@@ -26,6 +30,8 @@ export interface UpdateProdutoEntity {
   preco_custo?: number;
   preco_minimo_venda?: number;
   preco_revenda?: number;
+  validade?: boolean;
+  validade_dias?: number;
 }
 
 export interface DeleteProdutoEntity {

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Eye,
-  Edit,
   XCircle,
-  Trash2,
-  DollarSign,
   Package,
   Truck,
+  Eye,
+  Edit,
+  Trash2,
+  DollarSign,
+  CheckCircle,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
@@ -14,6 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { usePagination } from "@/hooks/use-pagination";
 import { createVendasColumns } from "@/components/vendas/vendas-columns";
 import type { VendasEntity, VendasResponse } from "@/models/vendas.entity";
+import type { DataTableAction } from "@/types/datatable.type";
 import { StatusVenda } from "@/models/vendas.entity";
 import { vendasService } from "@/services/vendas.service";
 import { VendaDetailsModal } from "@/components/vendas/VendaDetailsModal";
@@ -52,6 +54,8 @@ export function VendasPage() {
     totalProduzidas: 0,
     totalEntregues: 0,
     totalFaturamento: 0,
+    totalAReceber: 0,
+    totalRecebido: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +153,8 @@ export function VendasPage() {
         totalEntregues: data.totalEntregues || 0,
         totalProduzidas: data.totalProduzidas || 0,
         totalFaturamento: data.totalFaturamento || 0,
+        totalAReceber: data.totalAReceber || 0,
+        totalRecebido: data.totalRecebido || 0,
       });
     } catch (err) {
       console.error("Erro ao carregar vendas:", err);
@@ -277,6 +283,71 @@ export function VendasPage() {
   // Memoizar colunas e ações
   const columns = useMemo(() => createVendasColumns(), []);
 
+  // Criar ações estáticas para o DataTable
+  const actions = useMemo(
+    (): DataTableAction<VendasEntity>[] => [
+      {
+        id: "view",
+        label: "Visualizar",
+        icon: Eye,
+        onClick: handleView,
+        variant: "ghost" as const,
+      },
+      {
+        id: "edit",
+        label: "Editar",
+        icon: Edit,
+        onClick: handleEdit,
+        variant: "ghost" as const,
+        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
+      },
+      {
+        id: "produzido",
+        label: "Produzido",
+        icon: CheckCircle,
+        onClick: (venda: VendasEntity) =>
+          handleUpdateStatus(venda.id, StatusVenda.PRODUZIDO),
+        variant: "ghost" as const,
+        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
+      },
+      {
+        id: "entregue",
+        label: "Entregue",
+        icon: Truck,
+        onClick: (venda: VendasEntity) =>
+          handleUpdateStatus(venda.id, StatusVenda.ENTREGUE),
+        variant: "ghost" as const,
+        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PRODUZIDO,
+      },
+      {
+        id: "pago",
+        label: "Pago",
+        icon: DollarSign,
+        onClick: handlePagamento,
+        variant: "ghost" as const,
+        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.ENTREGUE,
+      },
+      {
+        id: "cancelado",
+        label: "Cancelar",
+        icon: XCircle,
+        onClick: (venda: VendasEntity) =>
+          handleUpdateStatus(venda.id, StatusVenda.CANCELADO),
+        variant: "ghost" as const,
+        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
+      },
+      {
+        id: "delete",
+        label: "Excluir",
+        icon: Trash2,
+        onClick: handleDelete,
+        variant: "ghost" as const,
+        // Sem hidden - disponível para todos os status
+      },
+    ],
+    [handleView, handleEdit, handleDelete, handleUpdateStatus, handlePagamento]
+  );
+
   // Ações em massa
   const bulkActions = useMemo(
     () => [
@@ -351,102 +422,6 @@ export function VendasPage() {
     ],
     [handleBulkUpdateStatus, openConfirmDialog]
   );
-  const actions = useMemo(
-    () => [
-      {
-        id: "view",
-        label: "Visualizar",
-        icon: Eye,
-        onClick: handleView,
-        variant: "ghost" as const,
-      },
-      {
-        id: "edit",
-        label: "Editar",
-        icon: Edit,
-        onClick: handleEdit,
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
-      },
-      {
-        id: "produzido",
-        label: "Produzido",
-        icon: Package,
-        onClick: (venda: VendasEntity) => {
-          openConfirmDialog(
-            "Marcar como Produzido",
-            `Confirma que a venda de ${venda.cliente.nome} foi produzida?`,
-            () => handleUpdateStatus(venda.id, StatusVenda.PRODUZIDO),
-            "Confirmar"
-          );
-        },
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
-      },
-      {
-        id: "entregue",
-        label: "Entregue",
-        icon: Truck,
-        onClick: (venda: VendasEntity) => {
-          openConfirmDialog(
-            "Marcar como Entregue",
-            `Confirma que a venda de ${venda.cliente.nome} foi entregue?`,
-            () => handleUpdateStatus(venda.id, StatusVenda.ENTREGUE),
-            "Confirmar"
-          );
-        },
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PRODUZIDO,
-      },
-      {
-        id: "pago",
-        label: "Pago",
-        icon: DollarSign,
-        onClick: (venda: VendasEntity) => {
-          openConfirmDialog(
-            "Marcar como Pago",
-            `Confirma que a venda de ${venda.cliente.nome} foi paga?`,
-            () => handlePagamento(venda),
-            "Confirmar"
-          );
-        },
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.ENTREGUE,
-      },
-      {
-        id: "cancel",
-        label: "Cancelar",
-        icon: XCircle,
-        onClick: (venda: VendasEntity) => {
-          openConfirmDialog(
-            "Cancelar Venda",
-            `Tem certeza que deseja cancelar a venda de ${venda.cliente.nome}?`,
-            () => handleUpdateStatus(venda.id, StatusVenda.CANCELADO),
-            "Cancelar",
-            "destructive"
-          );
-        },
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
-      },
-      {
-        id: "delete",
-        label: "Excluir",
-        icon: Trash2,
-        onClick: handleDelete,
-        variant: "ghost" as const,
-        hidden: (venda: VendasEntity) => venda.status !== StatusVenda.PENDENTE,
-      },
-    ],
-    [
-      handleView,
-      handleEdit,
-      handleDelete,
-      handleUpdateStatus,
-      handlePagamento,
-      openConfirmDialog,
-    ]
-  );
 
   useEffect(() => {
     loadVendas();
@@ -519,12 +494,14 @@ export function VendasPage() {
       vendasCanceladas: estatisticasAPI.totalCanceladas,
       vendasEntregues: estatisticasAPI.totalEntregues,
       totalFaturamento: estatisticasAPI.totalFaturamento,
+      totalAReceber: estatisticasAPI.totalAReceber,
+      totalRecebido: estatisticasAPI.totalRecebido,
     };
   }, [vendas.length, estatisticasAPI, vendas]);
 
   return (
     <DefaultLayout>
-      <div className="w-full">
+      <div className="w-full space-y-6">
         <VendasPageHeader
           onNewVenda={handleNewVenda}
           onRelatorio={handleRelatorio}

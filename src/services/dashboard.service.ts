@@ -1,12 +1,22 @@
 import { request } from "./request";
 import type { StatusVenda } from "@/models/vendas.entity";
 
+interface MetricaComTendencia {
+  atual: number;
+  anterior: number;
+  percentualMudanca: number;
+  tendencia: "crescimento" | "queda" | "estavel";
+}
+
 export interface DashboardMetrics {
-  totalVendas: number;
-  totalFaturamento: number;
-  aReceber: number;
-  totalClientes: number;
-  totalProdutos: number;
+  totalVendas: MetricaComTendencia;
+  totalFaturamento: MetricaComTendencia;
+  aReceber: MetricaComTendencia;
+  recebido: MetricaComTendencia;
+  lucro: MetricaComTendencia;
+  totalProdutosVendidos: MetricaComTendencia;
+  totalClientes: MetricaComTendencia;
+  totalProdutos: MetricaComTendencia;
   vendasPorStatus: {
     status: StatusVenda;
     count: number;
@@ -21,8 +31,29 @@ export interface DashboardMetrics {
     produto: string;
     quantidade: number;
     faturamento: number;
+    percentualParticipacao: number;
   }[];
   clientesMaisAtivos: {
+    cliente: string;
+    totalCompras: number;
+    ultimaCompra: string;
+  }[];
+  clientesMaisAtivosPorValor: {
+    cliente: string;
+    totalCompras: number;
+    ultimaCompra: string;
+  }[];
+  clientesMaisAtivosPorFrequencia: {
+    cliente: string;
+    totalCompras: number;
+    ultimaCompra: string;
+  }[];
+  clientesMaisAtivosPorRecencia: {
+    cliente: string;
+    totalCompras: number;
+    ultimaCompra: string;
+  }[];
+  clientesMaisAtivosPorDiversidade: {
     cliente: string;
     totalCompras: number;
     ultimaCompra: string;
@@ -63,10 +94,36 @@ export const dashboardService = {
         produtosData.status === "fulfilled" ? produtosData.value.data : null;
 
       return {
-        totalVendas: vendas?.total || 0,
-        totalFaturamento: vendas?.totalFaturamento || 0,
-        totalClientes: clientes?.total || 0,
-        totalProdutos: produtos?.total || 0,
+        totalVendas: {
+          atual: vendas?.total || 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        totalFaturamento: {
+          atual: vendas?.totalFaturamento || 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        aReceber: {
+          atual: vendas?.totalAReceber || 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        totalClientes: {
+          atual: clientes?.total || 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
+        totalProdutos: {
+          atual: produtos?.total || 0,
+          anterior: 0,
+          percentualMudanca: 0,
+          tendencia: "estavel" as const,
+        },
         vendasPorStatus: vendas
           ? [
               {

@@ -5,13 +5,13 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  ArrowLeft,
   CreditCard,
   DollarSign,
   Calendar,
   Package,
   AlertTriangle,
   Check,
+  Trash2,
 } from "lucide-react";
 
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
@@ -54,8 +54,8 @@ import {
 } from "@/schemas/processar-pagamento.schema";
 
 const formasPagamento = [
-  { value: "PIX", label: "PIX", icon: "📱" },
   { value: "DINHEIRO", label: "Dinheiro", icon: "💵" },
+  { value: "PIX", label: "PIX", icon: "📱" },
   { value: "CREDITO", label: "Cartão de Crédito", icon: "💳" },
   { value: "DEBITO", label: "Cartão de Débito", icon: "💳" },
 ] as const;
@@ -71,7 +71,7 @@ export function ProcessarPagamentoPage() {
     resolver: zodResolver(processarVendaSchema),
     defaultValues: {
       data_pagamento: new Date(),
-      pagamentos: [{ forma: "PIX", valor: 0 }],
+      pagamentos: [{ forma: "DINHEIRO", valor: 0 }],
       devolucoes: [],
     },
   });
@@ -135,10 +135,29 @@ export function ProcessarPagamentoPage() {
   const valorFinal = totalVenda - totalDevolucoes;
   const diferenca = totalPagamentos - valorFinal;
 
+  // Atualizar automaticamente o valor do primeiro pagamento quando devoluções mudam
+  useEffect(() => {
+    if (!venda || pagamentos.length === 0) return;
+
+    // Calcular o novo valor que o primeiro pagamento deve ter
+    const novoValorPrimeiroPagamento = valorFinal;
+    const valorAtualPrimeiroPagamento = pagamentos[0]?.valor || 0;
+
+    // Só atualiza se o valor mudou significativamente (mais de 0.01)
+    if (
+      Math.abs(novoValorPrimeiroPagamento - valorAtualPrimeiroPagamento) > 0.01
+    ) {
+      form.setValue("pagamentos.0.valor", novoValorPrimeiroPagamento);
+    }
+  }, [devolucoes, venda, form, valorFinal, pagamentos]);
+
   const adicionarPagamento = () => {
+    // Calcular quanto ainda falta para completar o valor final
+    const valorRestante = Math.max(0, valorFinal - totalPagamentos);
+
     appendPagamento({
       forma: "PIX",
-      valor: Math.max(0, valorFinal - totalPagamentos),
+      valor: valorRestante,
     });
   };
 
@@ -237,15 +256,6 @@ export function ProcessarPagamentoPage() {
       <div className="w-full space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/vendas")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
           <div>
             <Heading1 className="flex items-center gap-2">
               <CreditCard className="h-6 w-6" />
@@ -381,166 +391,179 @@ export function ProcessarPagamentoPage() {
                 className="space-y-6"
               >
                 {/* Data de Pagamento */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Data do Pagamento
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FormField
-                      control={form.control}
-                      name="data_pagamento"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Data</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(
-                                      field.value,
-                                      "dd 'de' MMMM 'de' yyyy",
-                                      {
-                                        locale: ptBR,
-                                      }
-                                    )
-                                  ) : (
-                                    <span>Selecione uma data</span>
-                                  )}
-                                  <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date: Date) =>
-                                  date > new Date() ||
-                                  date < new Date("1900-01-01")
-                                }
-                                locale={ptBR}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Formas de Pagamento */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Formas de Pagamento
+                        <Calendar className="h-5 w-5" />
+                        Data do Pagamento
                       </CardTitle>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={adicionarPagamento}
-                      >
-                        Adicionar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {pagamentosFields.map((field, index) => (
-                      <div key={field.id} className="flex gap-4 items-end">
-                        <FormField
-                          control={form.control}
-                          name={`pagamentos.${index}.forma`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Forma de Pagamento</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
+                    </CardHeader>
+                    <CardContent>
+                      <FormField
+                        control={form.control}
+                        name="data_pagamento"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Data</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                  </SelectTrigger>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full pl-3 text-left font-normal cursor-pointer",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(
+                                        field.value,
+                                        "dd 'de' MMMM 'de' yyyy",
+                                        {
+                                          locale: ptBR,
+                                        }
+                                      )
+                                    ) : (
+                                      <span>Selecione uma data</span>
+                                    )}
+                                    <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
                                 </FormControl>
-                                <SelectContent>
-                                  {formasPagamento.map((forma) => (
-                                    <SelectItem
-                                      key={forma.value}
-                                      value={forma.value}
-                                    >
-                                      <span className="flex items-center gap-2">
-                                        <span>{forma.icon}</span>
-                                        {forma.label}
-                                      </span>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`pagamentos.${index}.valor`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Valor</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="0,00"
-                                  value={
-                                    field.value !== undefined ? field.value : ""
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <CalendarComponent
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date: Date) =>
+                                    date > new Date() ||
+                                    date < new Date("1900-01-01")
                                   }
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    field.onChange(
-                                      value === "" ? 0 : Number(value)
-                                    );
-                                  }}
+                                  locale={ptBR}
+                                  initialFocus
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {pagamentosFields.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removePagamento(index)}
-                          >
-                            Remover
-                          </Button>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
                         )}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Formas de Pagamento */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5" />
+                          Formas de Pagamento
+                        </CardTitle>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={adicionarPagamento}
+                          className="cursor-pointer"
+                        >
+                          Adicionar
+                        </Button>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {pagamentosFields.map((field, index) => (
+                        <div key={field.id} className="flex gap-4 items-end">
+                          <FormField
+                            control={form.control}
+                            name={`pagamentos.${index}.forma`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Forma de Pagamento</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {formasPagamento.map((forma) => (
+                                      <SelectItem
+                                        key={forma.value}
+                                        value={forma.value}
+                                      >
+                                        <span className="flex items-center gap-2">
+                                          <span>{forma.icon}</span>
+                                          {forma.label}
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`pagamentos.${index}.valor`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>
+                                  Valor
+                                  {index === 0 && totalDevolucoes > 0 && (
+                                    <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
+                                      (atualizado)
+                                    </span>
+                                  )}
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0,00"
+                                    value={
+                                      field.value !== undefined
+                                        ? field.value
+                                        : ""
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      field.onChange(
+                                        value === "" ? 0 : Number(value)
+                                      );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {pagamentosFields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removePagamento(index)}
+                              className="cursor-pointer"
+                            >
+                              Remover
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
 
                 {/* Devoluções */}
                 <Card>
@@ -556,6 +579,7 @@ export function ProcessarPagamentoPage() {
                         size="sm"
                         onClick={adicionarDevolucao}
                         disabled={!venda.item_venda.length}
+                        className="cursor-pointer"
                       >
                         Adicionar
                       </Button>
@@ -577,7 +601,7 @@ export function ProcessarPagamentoPage() {
                               control={form.control}
                               name={`devolucoes.${index}.item_venda_id`}
                               render={({ field }) => (
-                                <FormItem className="flex-1">
+                                <FormItem>
                                   <FormLabel>Produto</FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
@@ -695,12 +719,12 @@ export function ProcessarPagamentoPage() {
 
                             <Button
                               type="button"
-                              variant="outline"
+                              variant="destructive"
                               size="sm"
                               onClick={() => removeDevolucao(index)}
-                              className="mt-8"
+                              className="cursor-pointer ml-auto"
                             >
-                              Remover
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
 
@@ -732,13 +756,14 @@ export function ProcessarPagamentoPage() {
                     type="button"
                     variant="outline"
                     onClick={() => navigate("/vendas")}
+                    className="cursor-pointer"
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
                     disabled={processing || Math.abs(diferenca) > 0.01}
-                    className="min-w-32"
+                    className="min-w-32 cursor-pointer"
                   >
                     {processing ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

@@ -164,7 +164,7 @@ export const createVendasActions = (
   onPagamento: (venda: VendasEntity) => void
 ) => {
   return (venda: VendasEntity): DataTableAction<VendasEntity>[] => {
-    const baseActions: DataTableAction<VendasEntity>[] = [
+    const actions: DataTableAction<VendasEntity>[] = [
       {
         id: "view",
         label: "Visualizar",
@@ -175,11 +175,9 @@ export const createVendasActions = (
     ];
 
     // Ações específicas por status
-    const statusActions: DataTableAction<VendasEntity>[] = [];
-
     switch (venda.status) {
       case StatusVenda.PENDENTE:
-        statusActions.push(
+        actions.push(
           {
             id: "edit",
             label: "Editar",
@@ -200,19 +198,12 @@ export const createVendasActions = (
             icon: XCircle,
             onClick: () => onUpdateStatus(venda.id, StatusVenda.CANCELADO),
             variant: "ghost" as const,
-          },
-          {
-            id: "delete",
-            label: "Excluir",
-            icon: Trash2,
-            onClick: () => onDelete(venda),
-            variant: "ghost" as const,
           }
         );
         break;
 
       case StatusVenda.PRODUZIDO:
-        statusActions.push({
+        actions.push({
           id: "entregue",
           label: "Entregue",
           icon: CheckCircle,
@@ -222,7 +213,7 @@ export const createVendasActions = (
         break;
 
       case StatusVenda.ENTREGUE:
-        statusActions.push({
+        actions.push({
           id: "pago",
           label: "Pago",
           icon: DollarSign,
@@ -231,12 +222,23 @@ export const createVendasActions = (
         });
         break;
 
+      case StatusVenda.PAGO:
+      case StatusVenda.CANCELADO:
       default:
-        // Para status PAGO e CANCELADO, apenas visualizar
+        // Para status PAGO e CANCELADO, não há ações específicas além de visualizar e excluir
         break;
     }
 
-    return [...baseActions, ...statusActions];
+    // Adiciona a ação de excluir para todos os status
+    actions.push({
+      id: "delete",
+      label: "Excluir",
+      icon: Trash2,
+      onClick: () => onDelete(venda),
+      variant: "ghost" as const,
+    });
+
+    return actions;
   };
 };
 

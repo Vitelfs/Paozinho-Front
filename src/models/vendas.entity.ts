@@ -47,6 +47,8 @@ export interface VendasResponse {
   totalEntregues: number;
   totalProduzidas: number;
   totalFaturamento: number;
+  totalAReceber: number;
+  totalRecebido: number;
 }
 
 export interface ItemVendasEntity {
@@ -81,7 +83,7 @@ export interface PagamentoEntity {
 export interface DevolucaoEntity {
   item_venda_id: string;
   quantidade: number;
-  motivo: string;
+  motivo?: string;
 }
 
 export interface DevolucaoEntityResponse {

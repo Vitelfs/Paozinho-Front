@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Save, Package, DollarSign } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Package,
+  DollarSign,
+  Info,
+  Calendar,
+  Tag,
+  FileText,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +23,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -28,6 +39,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Heading1, Paragraph } from "@/components/ui/typography";
 import {
@@ -61,6 +73,8 @@ export function NewProdutoPage() {
       margem_lucro: 0,
       preco_revenda: 0,
       margem_lucro_cliente: 0,
+      validade: true,
+      validade_dias: 0,
     },
   });
 
@@ -244,267 +258,501 @@ export function NewProdutoPage() {
         </div>
 
         {/* Formulário */}
-        <Card className="mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Informações do Produto
-            </CardTitle>
-            <CardDescription>
-              Todos os campos são obrigatórios para o cadastro
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Coluna Principal - Informações Básicas */}
+          <div className="lg:col-span-2 space-y-6">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
-                {/* Nome */}
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        Nome do Produto
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Digite o nome do produto"
-                          {...field}
+                {/* Informações Básicas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Info className="h-5 w-5 text-blue-600" />
+                      Informações Básicas
+                    </CardTitle>
+                    <CardDescription>
+                      Dados principais do produto
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Nome */}
+                    <FormField
+                      control={form.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Package className="h-4 w-4" />
+                            Nome do Produto
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: Bolo de Chocolate"
+                              className="text-base"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Nome que aparecerá na lista de produtos
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Categoria */}
+                    <FormField
+                      control={form.control}
+                      name="categoria_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            Categoria
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            disabled={loadingCategorias}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="text-base">
+                                <SelectValue placeholder="Selecione uma categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categorias.map((categoria) => (
+                                <SelectItem
+                                  key={categoria.id}
+                                  value={categoria.id}
+                                >
+                                  {categoria.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Categoria para organizar seus produtos
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Descrição */}
+                    <FormField
+                      control={form.control}
+                      name="descricao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Descrição
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Descreva os ingredientes, sabor, características especiais..."
+                              className="min-h-[120px] text-base resize-none"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Descrição detalhada do produto
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Preços e Margens */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                      Preços e Margens
+                    </CardTitle>
+                    <CardDescription>
+                      Configure os preços de custo, venda e revenda
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Coluna 1 - Preços Base */}
+                      <div className="space-y-4">
+                        <div className="text-sm font-medium text-muted-foreground mb-3">
+                          Preços Base
+                        </div>
+
+                        {/* Preço de Custo */}
+                        <FormField
+                          control={form.control}
+                          name="preco_custo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preço de Custo</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                                    R$
+                                  </span>
+                                  <Input
+                                    type="text"
+                                    placeholder="0,00"
+                                    className="pl-10 text-base"
+                                    value={
+                                      Number(field.value)
+                                        ? Number(field.value)
+                                            .toFixed(2)
+                                            .replace(".", ",")
+                                        : ""
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(
+                                        ",",
+                                        "."
+                                      );
+                                      handlePriceChange("preco_custo", value);
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Quanto custa para produzir
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
-                {/* Categoria */}
-                <FormField
-                  control={form.control}
-                  name="categoria_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        Categoria
-                      </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        disabled={loadingCategorias}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma categoria" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categorias.map((categoria) => (
-                            <SelectItem key={categoria.id} value={categoria.id}>
-                              {categoria.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Descrição */}
-                <FormField
-                  control={form.control}
-                  name="descricao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Descreva o produto..."
-                          className="min-h-[100px]"
-                          {...field}
+                        {/* Preço Mínimo de Venda */}
+                        <FormField
+                          control={form.control}
+                          name="preco_minimo_venda"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preço Mínimo de Venda</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                                    R$
+                                  </span>
+                                  <Input
+                                    type="text"
+                                    placeholder="0,00"
+                                    className="pl-10 text-base"
+                                    value={
+                                      Number(field.value)
+                                        ? Number(field.value)
+                                            .toFixed(2)
+                                            .replace(".", ",")
+                                        : ""
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(
+                                        ",",
+                                        "."
+                                      );
+                                      handlePriceChange(
+                                        "preco_minimo_venda",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Preço mínimo para vender
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
-                {/* Preços */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Preço de Custo */}
-                  <FormField
-                    control={form.control}
-                    name="preco_custo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Preço de Custo
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={
-                              Number(field.value)
-                                ? Number(field.value)
-                                    .toFixed(2)
-                                    .replace(".", ",")
-                                : ""
-                            }
-                            onChange={(e) => {
-                              const value = e.target.value.replace(",", ".");
-                              handlePriceChange("preco_custo", value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        {/* Margem de Lucro */}
+                        <FormField
+                          control={form.control}
+                          name="margem_lucro"
+                          render={() => (
+                            <FormItem>
+                              <FormLabel>Margem de Lucro</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    type="text"
+                                    placeholder="0,00"
+                                    className="pr-8 text-base"
+                                    value={margemLucroValue}
+                                    onChange={(e) => {
+                                      handleMargemChange(e.target.value);
+                                    }}
+                                  />
+                                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                                    %
+                                  </span>
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Calculado automaticamente
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  {/* Preço Mínimo de Venda */}
-                  <FormField
-                    control={form.control}
-                    name="preco_minimo_venda"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Preço Mínimo de Venda
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={
-                              Number(field.value)
-                                ? Number(field.value)
-                                    .toFixed(2)
-                                    .replace(".", ",")
-                                : ""
-                            }
-                            onChange={(e) => {
-                              const value = e.target.value.replace(",", ".");
-                              handlePriceChange("preco_minimo_venda", value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      {/* Coluna 2 - Revenda */}
+                      <div className="space-y-4">
+                        <div className="text-sm font-medium text-muted-foreground mb-3">
+                          Preços de Revenda
+                        </div>
 
-                  {/* Margem de Lucro */}
-                  <FormField
-                    control={form.control}
-                    name="margem_lucro"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Margem de Lucro (%)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={margemLucroValue}
-                            onChange={(e) => {
-                              handleMargemChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        {/* Preço de Revenda */}
+                        <FormField
+                          control={form.control}
+                          name="preco_revenda"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Preço de Revenda</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                                    R$
+                                  </span>
+                                  <Input
+                                    type="text"
+                                    placeholder="0,00"
+                                    className="pl-10 text-base"
+                                    value={
+                                      Number(field.value)
+                                        ? Number(field.value)
+                                            .toFixed(2)
+                                            .replace(".", ",")
+                                        : ""
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(
+                                        ",",
+                                        "."
+                                      );
+                                      handlePriceChange("preco_revenda", value);
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Preço sugerido para clientes
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  {/* Preço de Revenda */}
-                  <FormField
-                    control={form.control}
-                    name="preco_revenda"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Preço de Revenda
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={
-                              Number(field.value)
-                                ? Number(field.value)
-                                    .toFixed(2)
-                                    .replace(".", ",")
-                                : ""
-                            }
-                            onChange={(e) => {
-                              const value = e.target.value.replace(",", ".");
-                              handlePriceChange("preco_revenda", value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        {/* Margem de Lucro do Cliente */}
+                        <FormField
+                          control={form.control}
+                          name="margem_lucro_cliente"
+                          render={() => (
+                            <FormItem>
+                              <FormLabel>Margem do Cliente</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    type="text"
+                                    placeholder="0,00"
+                                    className="pr-8 text-base"
+                                    value={margemLucroClienteValue}
+                                    onChange={(e) => {
+                                      handleMargemClienteChange(e.target.value);
+                                    }}
+                                  />
+                                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                                    %
+                                  </span>
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Margem de lucro para o cliente
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                  {/* Margem de Lucro do Cliente */}
-                  <FormField
-                    control={form.control}
-                    name="margem_lucro_cliente"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Margem de Lucro Cliente (%)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={margemLucroClienteValue}
-                            onChange={(e) => {
-                              handleMargemClienteChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Validade */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-amber-600" />
+                      Validade do Produto
+                    </CardTitle>
+                    <CardDescription>
+                      Configure se o produto possui prazo de validade
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Switch de Validade */}
+                      <FormField
+                        control={form.control}
+                        name="validade"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/30">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base font-medium">
+                                Produto possui validade?
+                              </FormLabel>
+                              <FormDescription>
+                                Ative se o produto tem prazo de validade
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Dias de Validade */}
+                      <FormField
+                        control={form.control}
+                        name="validade_dias"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Validade (em dias)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                min="0"
+                                max="9999"
+                                className="text-base"
+                                disabled={!form.watch("validade")}
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(parseInt(e.target.value) || 0)
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Quantos dias o produto dura após a produção
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </form>
+            </Form>
+          </div>
+
+          {/* Coluna Lateral - Resumo e Ações */}
+          <div className="space-y-6">
+            {/* Resumo */}
+            <Card className="sticky top-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  Resumo do Produto
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Preço de Custo:
+                    </span>
+                    <span className="font-medium">
+                      R${" "}
+                      {Number(form.watch("preco_custo") || 0)
+                        .toFixed(2)
+                        .replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Preço de Venda:
+                    </span>
+                    <span className="font-medium">
+                      R${" "}
+                      {Number(form.watch("preco_minimo_venda") || 0)
+                        .toFixed(2)
+                        .replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Preço de Revenda:
+                    </span>
+                    <span className="font-medium">
+                      R${" "}
+                      {Number(form.watch("preco_revenda") || 0)
+                        .toFixed(2)
+                        .replace(".", ",")}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Margem de Lucro:
+                    </span>
+                    <span className="font-medium text-green-600">
+                      {margemLucroValue || "0,00"}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Margem do Cliente:
+                    </span>
+                    <span className="font-medium text-blue-600">
+                      {margemLucroClienteValue || "0,00"}%
+                    </span>
+                  </div>
                 </div>
 
-                {/* Botões de ação */}
-                <div className="flex justify-end gap-3 pt-6 border-t">
+                <Separator />
+
+                {/* Botões de Ação */}
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || loadingCategorias}
+                    className="w-full flex items-center gap-2"
+                    size="lg"
+                    onClick={form.handleSubmit(onSubmit)}
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSubmitting ? "Criando..." : "Criar Produto"}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
                     disabled={isSubmitting}
+                    className="w-full"
+                    size="lg"
                   >
                     Cancelar
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || loadingCategorias}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {isSubmitting ? "Criando..." : "Criar Produto"}
-                  </Button>
                 </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </DefaultLayout>
   );

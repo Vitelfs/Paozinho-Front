@@ -46,6 +46,7 @@ export const vendasService = {
     return response.data;
   },
   getVendas: async (pagination: VendasPagination): Promise<VendasResponse> => {
+    console.log("pagination", pagination);
     const response = await request.get("/vendas", { params: pagination });
     return response.data;
   },
@@ -54,6 +55,7 @@ export const vendasService = {
     return response.data;
   },
   deleteVenda: async (id: string) => {
+    console.log("deletando venda", id);
     const response = await request.delete(`/vendas/${id}`);
     return response.data;
   },

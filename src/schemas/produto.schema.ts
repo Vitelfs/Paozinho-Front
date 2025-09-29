@@ -35,6 +35,16 @@ export const produtoSchema = z
       .number()
       .min(0, "Margem de lucro cliente deve ser maior que zero")
       .max(10000, "Margem de lucro cliente muito alta"),
+    validade: z.boolean(),
+    validade_dias: z.number().min(0, "Validade deve ser maior que zero"),
+  })
+  .refine((data) => data.validade, {
+    message: "Validade é obrigatória",
+    path: ["validade"],
+  })
+  .refine((data) => data.validade_dias > 0, {
+    message: "Validade deve ser maior que zero",
+    path: ["validade_dias"],
   })
   .refine((data) => data.preco_minimo_venda >= data.preco_custo, {
     message: "Preço mínimo de venda deve ser maior ou igual ao preço de custo",
@@ -76,6 +86,16 @@ export const updateProdutoSchema = z
       .number()
       .min(0, "Margem de lucro cliente deve ser maior que zero")
       .max(10000, "Margem de lucro cliente muito alta"),
+    validade: z.boolean(),
+    validade_dias: z.number().min(0, "Validade deve ser maior que zero"),
+  })
+  .refine((data) => data.validade, {
+    message: "Validade é obrigatória",
+    path: ["validade"],
+  })
+  .refine((data) => data.validade_dias > 0, {
+    message: "Validade deve ser maior que zero",
+    path: ["validade_dias"],
   })
   .refine((data) => data.preco_minimo_venda >= data.preco_custo, {
     message: "Preço mínimo de venda deve ser maior ou igual ao preço de custo",

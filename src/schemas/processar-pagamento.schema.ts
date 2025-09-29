@@ -10,7 +10,7 @@ export const pagamentoSchema = z.object({
 export const devolucaoSchema = z.object({
   item_venda_id: z.string().min(1, "Item da venda é obrigatório"),
   quantidade: z.number().min(1, "Quantidade deve ser maior que zero"),
-  motivo: z.string().min(1, "Motivo é obrigatório"),
+  motivo: z.string().optional(),
 });
 
 export const processarVendaSchema = z.object({

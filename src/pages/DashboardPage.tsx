@@ -11,6 +11,11 @@ import {
   ShoppingCart,
   BarChart3,
   Calendar as CalendarIcon,
+  Crown,
+  Star,
+  Clock,
+  Layers,
+  Award,
 } from "lucide-react";
 
 import { DefaultLayout } from "@/components/layout/DefaultLayout";
@@ -48,16 +53,19 @@ import {
 } from "@/services/dashboard.service";
 import { cn } from "@/lib/utils";
 import { StatusVenda } from "@/models/vendas.entity";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Configuração de cores para os gráficos
 const chartConfig = {
   vendas: {
     label: "Vendas",
-    color: "hsl(var(--chart-1))",
+    color: "#3b82f6", // azul mais vibrante
   },
   faturamento: {
     label: "Faturamento",
-    color: "hsl(var(--chart-2))",
+    color: "#10b981", // verde
   },
   PENDENTE: {
     label: "Pendente",
@@ -82,6 +90,255 @@ const chartConfig = {
 };
 
 const COLORS = ["#fbbf24", "#3b82f6", "#8b5cf6", "#10b981", "#ef4444"];
+
+// Componente reutilizável para listar produtos
+interface ProdutosListProps {
+  data: {
+    produto: string;
+    quantidade: number;
+    faturamento: number;
+    percentualParticipacao: number;
+  }[];
+  loading: boolean;
+}
+
+function ProdutosList({ data, loading }: ProdutosListProps) {
+  return (
+    <div className="space-y-3">
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-3">
+            {data.slice(0, 10).map((produto, index) => (
+              <div
+                key={produto.produto}
+                className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+              >
+                {/* Ranking */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-medium">
+                  {index + 1}
+                </div>
+
+                {/* Informações do produto */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-foreground truncate">
+                    {produto.produto}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      {produto.quantidade} unidades
+                    </span>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      {produto.percentualParticipacao.toFixed(1)}% do total
+                    </span>
+                  </div>
+                </div>
+
+                {/* Faturamento */}
+                <div className="text-right">
+                  <div className="font-semibold text-sm text-foreground">
+                    R${" "}
+                    {produto.faturamento.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    faturamento
+                  </div>
+                </div>
+              </div>
+            ))}
+            {data.length === 0 && !loading && (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                Nenhum produto encontrado
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      )}
+    </div>
+  );
+}
+
+// Componente reutilizável para listar status
+interface StatusListProps {
+  data: {
+    status: StatusVenda;
+    count: number;
+    total: number;
+  }[];
+  loading: boolean;
+}
+
+function StatusList({ data, loading }: StatusListProps) {
+  return (
+    <div className="space-y-3">
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : (
+        data.map((item) => (
+          <div
+            key={item.status}
+            className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            {/* Status Badge */}
+            <Badge
+              className={cn(
+                "text-xs border font-medium",
+                item.status === "PENDENTE" &&
+                  "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
+                item.status === "PRODUZIDO" &&
+                  "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
+                item.status === "ENTREGUE" &&
+                  "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800",
+                item.status === "PAGO" &&
+                  "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
+                item.status === "CANCELADO" &&
+                  "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+              )}
+            >
+              {item.status.charAt(0).toUpperCase() +
+                item.status.slice(1).toLowerCase()}
+            </Badge>
+
+            {/* Informações do status */}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-foreground">
+                <span className="text-violet-600 dark:text-violet-400 font-medium">
+                  {item.count}
+                </span>{" "}
+                vendas
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {item.status.toLowerCase()}
+              </div>
+            </div>
+
+            {/* Valor total */}
+            <div className="text-right">
+              <div className="font-semibold text-sm text-foreground">
+                R${" "}
+                {(item.total || 0).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </div>
+              <div className="text-xs text-muted-foreground">total</div>
+            </div>
+          </div>
+        ))
+      )}
+      {data.length === 0 && !loading && (
+        <div className="text-center py-4 text-muted-foreground text-sm">
+          Nenhum status encontrado
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componente reutilizável para listar clientes
+interface ClientesListProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  data: {
+    cliente: string;
+    totalCompras: number;
+    ultimaCompra: string;
+  }[];
+  loading: boolean;
+  formatValue: (value: number) => string;
+  valueLabel: string;
+}
+
+function ClientesList({
+  title,
+  description,
+  icon,
+  data,
+  loading,
+  formatValue,
+  valueLabel,
+}: ClientesListProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <div>
+          <h4 className="font-semibold text-sm">{title}</h4>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-3">
+            {data.slice(0, 10).map((cliente, index) => (
+              <div
+                key={cliente.cliente}
+                className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+              >
+                {/* Ranking com ícone especial para top 3 */}
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-medium">
+                  {index < 3 ? <Award className="h-4 w-4" /> : index + 1}
+                </div>
+
+                {/* Informações do cliente */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-foreground truncate">
+                    {cliente.cliente}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-primary font-medium">
+                      {formatValue(cliente.totalCompras)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {valueLabel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Última compra */}
+                <div className="text-right">
+                  <div className="font-medium text-sm text-foreground">
+                    {format(new Date(cliente.ultimaCompra), "dd/MM/yyyy", {
+                      locale: ptBR,
+                    })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    última compra
+                  </div>
+                </div>
+              </div>
+            ))}
+            {data.length === 0 && !loading && (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                Nenhum cliente encontrado
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      )}
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const [metrics, setMetrics] = useState<Partial<DashboardMetrics>>({});
@@ -129,29 +386,33 @@ export function DashboardPage() {
     loadMetrics();
   }, [dateRange]);
 
-  // Dados mockados para demonstração quando não há dados do backend
-  const mockVendasPorDia = [
-    { data: "01/01", vendas: 12, faturamento: 450 },
-    { data: "02/01", vendas: 8, faturamento: 320 },
-    { data: "03/01", vendas: 15, faturamento: 580 },
-    { data: "04/01", vendas: 20, faturamento: 750 },
-    { data: "05/01", vendas: 18, faturamento: 680 },
-    { data: "06/01", vendas: 22, faturamento: 820 },
-    { data: "07/01", vendas: 25, faturamento: 950 },
-  ];
+  // Função para obter o ícone de tendência
+  const getTrendIcon = (tendencia: string) => {
+    switch (tendencia) {
+      case "crescimento":
+        return <TrendingUp className="h-3 w-3 text-green-600" />;
+      case "queda":
+        return <TrendingDown className="h-3 w-3 text-red-600" />;
+      default:
+        return <div className="h-3 w-3" />; // Espaço vazio para manter alinhamento
+    }
+  };
 
-  const mockProdutosMaisVendidos = [
-    { produto: "Pão Francês", quantidade: 120, faturamento: 360 },
-    { produto: "Croissant", quantidade: 85, faturamento: 425 },
-    { produto: "Bolo de Chocolate", quantidade: 45, faturamento: 675 },
-    { produto: "Pão de Açúcar", quantidade: 60, faturamento: 480 },
-    { produto: "Torta de Frango", quantidade: 30, faturamento: 450 },
-  ];
+  // Função para formatar o texto da tendência
+  const getTrendText = (metrica: any) => {
+    if (!metrica || metrica.percentualMudanca === 0) {
+      return "Sem alterações";
+    }
+
+    const sinal = metrica.percentualMudanca > 0 ? "+" : "";
+    return `${sinal}${metrica.percentualMudanca.toFixed(
+      1
+    )}% em relação ao período anterior`;
+  };
 
   // Preparar dados dos gráficos
-  const vendasPorDia = metrics.vendasPorDia || mockVendasPorDia;
-  const produtosMaisVendidos =
-    metrics.produtosMaisVendidos || mockProdutosMaisVendidos;
+  const vendasPorDia = metrics.vendasPorDia;
+  const produtosMaisVendidos = metrics.produtosMaisVendidos;
   const vendasPorStatus = metrics.vendasPorStatus || [
     { status: "PENDENTE" as StatusVenda, count: 8, total: 320 },
     { status: "PRODUZIDO" as StatusVenda, count: 12, total: 480 },
@@ -175,7 +436,7 @@ export function DashboardPage() {
           <div>
             <Heading1 className="flex items-center gap-2">
               <BarChart3 className="h-8 w-8" />
-              Dashboard - Pãozinho Delícia Gourmet
+              Dashboard
             </Heading1>
             <Paragraph className="text-muted-foreground mt-2">
               Visão geral do seu negócio e métricas importantes
@@ -227,128 +488,244 @@ export function DashboardPage() {
         </div>
 
         {/* Cards de KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Vendas
-              </CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalVendas || 0}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                    <span>+12% em relação ao período anterior</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="financeiro">
+          <TabsList className="w-sm">
+            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+            <TabsTrigger value="operacional">Operacional</TabsTrigger>
+          </TabsList>
+          <TabsContent value="financeiro">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-blue-200 dark:border-blue-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    Faturamento
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                        R${" "}
+                        {(metrics.totalFaturamento?.atual || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {getTrendIcon(
+                          metrics.totalFaturamento?.tendencia || "estavel"
+                        )}
+                        <span>{getTrendText(metrics.totalFaturamento)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    R${" "}
-                    {(metrics.totalFaturamento || 0).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                    <span>+8% em relação ao período anterior</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+              <Card className="border-amber-200 dark:border-amber-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                    À receber
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
+                        R${" "}
+                        {(metrics.aReceber?.atual || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        {getTrendIcon(metrics.aReceber?.tendencia || "estavel")}
+                        <span>{getTrendText(metrics.aReceber)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="border-emerald-200 dark:border-emerald-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    Recebido
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                        R${" "}
+                        {(metrics.recebido?.atual || 0).toLocaleString(
+                          "pt-BR",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                        {getTrendIcon(metrics.recebido?.tendencia || "estavel")}
+                        <span>{getTrendText(metrics.recebido)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="border-purple-200 dark:border-purple-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                    Lucro
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+                        R${" "}
+                        {(metrics.lucro?.atual || 0).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 mt-1">
+                        {getTrendIcon(metrics.lucro?.tendencia || "estavel")}
+                        <span>{getTrendText(metrics.lucro)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="operacional">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-slate-200 dark:border-slate-700">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Total de Vendas
+                  </CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-20" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+                        {metrics.totalVendas?.atual || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 mt-1">
+                        {getTrendIcon(
+                          metrics.totalVendas?.tendencia || "estavel"
+                        )}
+                        <span>{getTrendText(metrics.totalVendas)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="border-indigo-200 dark:border-indigo-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                    Clientes Ativos
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-indigo-800 dark:text-indigo-200">
+                        {metrics.totalClientes?.atual || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                        {getTrendIcon(
+                          metrics.totalClientes?.tendencia || "estavel"
+                        )}
+                        <span>{getTrendText(metrics.totalClientes)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">À receber</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    R${" "}
-                    {(metrics.aReceber || 0).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Clientes Ativos
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalClientes || 0}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                    <span>+5 novos este mês</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Produtos Cadastrados
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalProdutos || 0}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <TrendingDown className="h-3 w-3 text-red-600" />
-                    <span>2 produtos em falta</span>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
+              <Card className="border-violet-200 dark:border-violet-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                    Produtos Cadastrados
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-violet-500 dark:text-violet-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-violet-800 dark:text-violet-200">
+                        {metrics.totalProdutos?.atual || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 mt-1">
+                        {getTrendIcon(
+                          metrics.totalProdutos?.tendencia || "estavel"
+                        )}
+                        <span>{getTrendText(metrics.totalProdutos)}</span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="border-pink-200 dark:border-pink-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                  <CardTitle className="text-sm font-medium text-pink-700 dark:text-pink-300">
+                    Produtos Vendidos
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-pink-500 dark:text-pink-400" />
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-pink-800 dark:text-pink-200">
+                        {metrics.totalProdutosVendidos?.atual || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-pink-600 dark:text-pink-400 mt-1">
+                        {getTrendIcon(
+                          metrics.totalProdutosVendidos?.tendencia || "estavel"
+                        )}
+                        <span>
+                          {getTrendText(metrics.totalProdutosVendidos)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+        <Separator />
         {/* Gráficos */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Gráfico de Vendas por Dia */}
@@ -371,7 +748,7 @@ export function DashboardPage() {
                     data={vendasPorDia}
                     width={525}
                     height={300}
-                    margin={{ top: 20, right: 10, left: -10, bottom: 20 }}
+                    margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
                   >
                     <defs>
                       <linearGradient
@@ -383,13 +760,13 @@ export function DashboardPage() {
                       >
                         <stop
                           offset="5%"
-                          stopColor="var(--color-vendas)"
-                          stopOpacity={0.8}
+                          stopColor="#3b82f6"
+                          stopOpacity={0.3}
                         />
                         <stop
                           offset="95%"
-                          stopColor="var(--color-vendas)"
-                          stopOpacity={0.1}
+                          stopColor="#3b82f6"
+                          stopOpacity={0.05}
                         />
                       </linearGradient>
                     </defs>
@@ -405,6 +782,7 @@ export function DashboardPage() {
                       tickLine={false}
                       tick={{ fontSize: 12 }}
                       width={30}
+                      domain={[0, "dataMax + 1"]}
                     />
                     <ChartTooltip
                       cursor={false}
@@ -412,11 +790,12 @@ export function DashboardPage() {
                     />
                     <Area
                       dataKey="vendas"
-                      type="natural"
+                      type="monotone"
                       fill="url(#fillVendas)"
-                      fillOpacity={0.4}
-                      stroke="var(--color-vendas)"
+                      fillOpacity={0.6}
+                      stroke="#3b82f6"
                       strokeWidth={2}
+                      connectNulls={false}
                     />
                   </AreaChart>
                 </ChartContainer>
@@ -469,177 +848,157 @@ export function DashboardPage() {
         </div>
 
         {/* Tabelas de dados */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Produtos Mais Vendidos */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Produtos e Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Produtos Mais Vendidos</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Análise de Produtos e Status
+              </CardTitle>
               <Paragraph className="text-sm text-muted-foreground">
-                Ranking dos produtos com maior saída
+                Produtos mais vendidos e distribuição por status
               </Paragraph>
             </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {produtosMaisVendidos.slice(0, 5).map((produto, index) => (
-                    <div
-                      key={produto.produto}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">
-                            {produto.produto}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {produto.quantidade} unidades
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-sm">
-                          R${" "}
-                          {produto.faturamento.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <CardContent className="pt-0">
+              <Tabs defaultValue="produtos" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger
+                    value="produtos"
+                    className="flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4" />
+                    Produtos
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="status"
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Status
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="produtos" className="mt-4">
+                  <ProdutosList
+                    data={produtosMaisVendidos || []}
+                    loading={loading}
+                  />
+                </TabsContent>
+
+                <TabsContent value="status" className="mt-4">
+                  <StatusList data={vendasPorStatus} loading={loading} />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
-          {/* Clientes Mais Ativos */}
+          {/* Análise de Clientes */}
           <Card>
             <CardHeader>
-              <CardTitle>Clientes Mais Ativos</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Análise de Clientes
+              </CardTitle>
               <Paragraph className="text-sm text-muted-foreground">
-                Clientes com maior número de compras
+                Diferentes perspectivas sobre o comportamento dos seus clientes
               </Paragraph>
             </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {(metrics.clientesMaisAtivos || [])
-                    .slice(0, 5)
-                    .map((cliente, index) => (
-                      <div
-                        key={cliente.cliente}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 text-sm font-medium">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm">
-                              {cliente.cliente}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {cliente.totalCompras} compra
-                              {cliente.totalCompras !== 1 ? "s" : ""}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-muted-foreground">
-                            {format(
-                              new Date(cliente.ultimaCompra),
-                              "dd/MM/yyyy",
-                              { locale: ptBR }
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  {(!metrics.clientesMaisAtivos ||
-                    metrics.clientesMaisAtivos.length === 0) &&
-                    !loading && (
-                      <div className="text-center py-4 text-muted-foreground text-sm">
-                        Nenhum cliente encontrado
-                      </div>
-                    )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            <CardContent className="pt-0">
+              <Tabs defaultValue="valor" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+                  <TabsTrigger
+                    value="valor"
+                    className="flex items-center gap-2"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">Por Valor</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="frequencia"
+                    className="flex items-center gap-2"
+                  >
+                    <Star className="h-4 w-4" />
+                    <span className="hidden sm:inline">Frequência</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="recencia"
+                    className="flex items-center gap-2"
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span className="hidden sm:inline">Recência</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="diversidade"
+                    className="flex items-center gap-2"
+                  >
+                    <Layers className="h-4 w-4" />
+                    <span className="hidden sm:inline">Diversidade</span>
+                  </TabsTrigger>
+                </TabsList>
 
-          {/* Status das Vendas - Lista */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumo por Status</CardTitle>
-              <Paragraph className="text-sm text-muted-foreground">
-                Detalhamento das vendas por cada status
-              </Paragraph>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {vendasPorStatus.map((item) => (
-                    <div
-                      key={item.status}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          className={cn(
-                            "text-xs border",
-                            item.status === "PENDENTE" &&
-                              "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
-                            item.status === "PRODUZIDO" &&
-                              "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-                            item.status === "ENTREGUE" &&
-                              "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800",
-                            item.status === "PAGO" &&
-                              "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
-                            item.status === "CANCELADO" &&
-                              "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                          )}
-                        >
-                          {item.status.charAt(0).toUpperCase() +
-                            item.status.slice(1).toLowerCase()}
-                        </Badge>
-                        <span className="font-medium text-sm">
-                          {item.count} vendas
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-sm">
-                          R${" "}
-                          {(item.total || 0).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                <TabsContent value="valor" className="mt-4">
+                  <ClientesList
+                    title="Clientes por Valor Total"
+                    description="Clientes que mais gastaram no período"
+                    icon={<Crown className="h-4 w-4 text-yellow-500" />}
+                    data={metrics.clientesMaisAtivosPorValor || []}
+                    loading={loading}
+                    formatValue={(value) =>
+                      `R$ ${value.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    }
+                    valueLabel="gastou"
+                  />
+                </TabsContent>
+
+                <TabsContent value="frequencia" className="mt-4">
+                  <ClientesList
+                    title="Clientes por Frequência"
+                    description="Clientes com mais compras realizadas"
+                    icon={<Star className="h-4 w-4 text-blue-500" />}
+                    data={metrics.clientesMaisAtivosPorFrequencia || []}
+                    loading={loading}
+                    formatValue={(value) =>
+                      `${value} compra${value !== 1 ? "s" : ""}`
+                    }
+                    valueLabel="realizou"
+                  />
+                </TabsContent>
+
+                <TabsContent value="recencia" className="mt-4">
+                  <ClientesList
+                    title="Clientes por Recência"
+                    description="Clientes com compras mais recentes"
+                    icon={<Clock className="h-4 w-4 text-green-500" />}
+                    data={metrics.clientesMaisAtivosPorRecencia || []}
+                    loading={loading}
+                    formatValue={(value) =>
+                      `R$ ${value.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    }
+                    valueLabel="gastou"
+                  />
+                </TabsContent>
+
+                <TabsContent value="diversidade" className="mt-4">
+                  <ClientesList
+                    title="Clientes por Diversidade"
+                    description="Clientes que compraram mais produtos diferentes"
+                    icon={<Layers className="h-4 w-4 text-purple-500" />}
+                    data={metrics.clientesMaisAtivosPorDiversidade || []}
+                    loading={loading}
+                    formatValue={(value) =>
+                      `${value} produto${value !== 1 ? "s" : ""} diferentes`
+                    }
+                    valueLabel="comprou"
+                  />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
