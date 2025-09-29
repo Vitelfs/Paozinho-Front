@@ -13,8 +13,7 @@ export const produtoSchema = z
     categoria_id: z.string().min(1, "Categoria é obrigatória"),
     descricao: z
       .string()
-      .min(10, "Descrição deve ter pelo menos 10 caracteres")
-      .max(500, "Descrição deve ter no máximo 500 caracteres"),
+      .optional(),
     preco_custo: z
       .number()
       .min(0.01, "Preço de custo deve ser maior que zero")
@@ -64,8 +63,7 @@ export const updateProdutoSchema = z
     categoria_id: z.string().min(1, "Categoria é obrigatória"),
     descricao: z
       .string()
-      .min(10, "Descrição deve ter pelo menos 10 caracteres")
-      .max(500, "Descrição deve ter no máximo 500 caracteres"),
+      .optional(),
     preco_custo: z
       .number()
       .min(0.01, "Preço de custo deve ser maior que zero")
